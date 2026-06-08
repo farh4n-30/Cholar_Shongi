@@ -2115,7 +2115,10 @@ class DatabaseManager:
             WHERE status='waiting'
             AND expires_at < datetime('now')
         """)
-        self.conn.commit()
+        try:
+            self.conn.commit()
+        except Exception:
+            pass
 
     def _reset_stale_6month_counters(self):
         c = self.conn.cursor()
