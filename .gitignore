@@ -1,0 +1,22 @@
+# Database file: never upload, reseeds automatically on Streamlit Cloud
+cholar_shongi.db
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+
+# Virtual environment
+venv/
+env/
+.env
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
