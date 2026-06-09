@@ -52,9 +52,9 @@ from email_service import (
     send_waitlist_entry_expired,
 )
 
+
 def fuel_gauge_bar(label: str, stock: float,
                    capacity: float, fuel_type: str):
-
     pct    = get_fuel_pct(stock, capacity)
     colour = get_fuel_gauge_colour(stock, capacity)
     st.markdown(f"**{label}**")
@@ -84,7 +84,6 @@ def token_card(token: str, station_name: str, station_address: str,
                slot_datetime: str, fuel_type: str, amount: float,
                estimated_cost: float, expires_label: str,
                is_emergency: bool = False):
-
     colour = "#FF3D00" if is_emergency else "#1E90FF"
     label  = "🚨 EMERGENCY TOKEN" if is_emergency else "✅ Booking Confirmed!"
 
@@ -125,7 +124,6 @@ def token_card(token: str, station_name: str, station_address: str,
 
 
 def status_badge(status: str) -> str:
-
     label  = STATUS_LABELS.get(status, status.title())
     colour = STATUS_COLOURS.get(status, "#B0BEC5")
     return (
@@ -146,7 +144,6 @@ def health_badge(health: str) -> str:
 
 
 def period_selector(key: str = "period") -> str:
-
     col1, col2, col3 = st.columns([1, 1, 1])
     with col1:
         if st.button("This Week",  key=f"{key}_week",
@@ -162,8 +159,8 @@ def period_selector(key: str = "period") -> str:
             st.session_state[f"{key}_selected"] = "year"
     return st.session_state.get(f"{key}_selected", "week")
 
-def show_electricity_public(db):
 
+def show_electricity_public(db):
     st.markdown("## ⚡ Electricity Schedules")
     st.markdown(
         '<p style="color:#B0BEC5">Check load shedding schedules '
@@ -257,7 +254,6 @@ def show_electricity_public(db):
 
 @require_role("pdb_admin")
 def show_pdb_dashboard(db):
-
     city = st.session_state.assigned_city
     st.markdown(f"## ⚡ PDB Command Center — {city}")
 
@@ -300,9 +296,9 @@ def show_pdb_dashboard(db):
                 if not valid:
                     st.error(msg)
                 else:
-                    feeder_id  = feeder_options[feeder_label]
-                    start_str  = start_dt.strftime("%Y-%m-%d %H:%M:%S")
-                    end_str    = end_dt.strftime("%Y-%m-%d %H:%M:%S")
+                    feeder_id = feeder_options[feeder_label]
+                    start_str = start_dt.strftime("%Y-%m-%d %H:%M:%S")
+                    end_str   = end_dt.strftime("%Y-%m-%d %H:%M:%S")
                     db.publish_schedule(
                         feeder_id, start_str, end_str,
                         note, st.session_state.user_id
@@ -461,8 +457,8 @@ def show_pdb_dashboard(db):
             })
         st.dataframe(pd.DataFrame(rows), use_container_width=True)
 
+
 def show_advance_booking(db):
-    
     st.markdown("## 📅 Advance Booking")
 
     if "booking_step" not in st.session_state:
@@ -470,8 +466,8 @@ def show_advance_booking(db):
 
     step = st.session_state.booking_step
 
-    steps        = ["Location", "Vehicle & Fuel",
-                    "Slot", "Details", "Confirm", "Done"]
+    steps         = ["Location", "Vehicle & Fuel",
+                     "Slot", "Details", "Confirm", "Done"]
     progress_html = ""
     for i, s_label in enumerate(steps, 1):
         colour = "#1E90FF" if i == step else (
@@ -486,7 +482,6 @@ def show_advance_booking(db):
         unsafe_allow_html=True
     )
     st.markdown("---")
-
 
     if step == 1:
         st.markdown("### Step 1: Select Location")
@@ -529,7 +524,6 @@ def show_advance_booking(db):
                     st.session_state.selected_station = dict(stn)
                     st.session_state.booking_step     = 2
                     st.rerun()
-
 
     elif step == 2:
         stn = st.session_state.selected_station
@@ -604,7 +598,6 @@ def show_advance_booking(db):
                         st.session_state.requested_amount = amount
                         st.session_state.booking_step     = 3
                         st.rerun()
-
 
     elif step == 3:
         stn     = st.session_state.selected_station
@@ -734,7 +727,6 @@ def show_advance_booking(db):
             st.session_state.show_full_grid = False
             st.rerun()
 
-
     elif step == 4:
         stn        = st.session_state.selected_station
         vehicle    = st.session_state.selected_vehicle
@@ -836,17 +828,16 @@ def show_advance_booking(db):
                 st.session_state.booking_step      = 5
                 st.rerun()
 
-
     elif step == 5:
-        stn     = st.session_state.selected_station
-        vehicle = st.session_state.selected_vehicle
-        fuel    = st.session_state.selected_fuel
-        amount  = st.session_state.requested_amount
+        stn      = st.session_state.selected_station
+        vehicle  = st.session_state.selected_vehicle
+        fuel     = st.session_state.selected_fuel
+        amount   = st.session_state.requested_amount
         slot_str = st.session_state.selected_slot
-        plate   = st.session_state.adv_plate_cleaned
-        purpose = st.session_state.adv_purpose_val
-        price   = db.get_fuel_price(fuel)
-        est     = calculate_cost(amount, price)
+        plate    = st.session_state.adv_plate_cleaned
+        purpose  = st.session_state.adv_purpose_val
+        price    = db.get_fuel_price(fuel)
+        est      = calculate_cost(amount, price)
 
         st.markdown("### Step 5: Confirm Booking")
         st.markdown("Please review your booking details before confirming:")
@@ -907,7 +898,6 @@ def show_advance_booking(db):
                 st.session_state.slot_hold_until = None
                 st.rerun()
 
-
     elif step == 6:
         stn      = st.session_state.selected_station
         vehicle  = st.session_state.selected_vehicle
@@ -952,7 +942,6 @@ def show_advance_booking(db):
 
 
 def show_walkin_booking(db):
-
     st.markdown("## 🚶 Walk-In Booking")
     st.markdown(
         '<p style="color:#B0BEC5">'
@@ -1101,7 +1090,6 @@ def show_walkin_booking(db):
 
 
 def show_emergency_services(db):
-
     st.markdown("## 🚨 Emergency Services")
     st.markdown(
         '<p style="color:#B0BEC5">'
@@ -1184,7 +1172,7 @@ def show_emergency_services(db):
 
         fuel = st.selectbox("Fuel Type Needed", FUEL_TYPES)
 
-        stations    = []
+        stations     = []
         if city and area:
             stations = db.get_stations_by_area(city, area)
 
@@ -1324,7 +1312,6 @@ def show_emergency_services(db):
 
 
 def show_find_my_booking(db, logged_in: bool = False):
-
     st.markdown("## 🔍 Find My Booking")
 
     if logged_in:
@@ -1342,8 +1329,8 @@ def show_find_my_booking(db, logged_in: bool = False):
             st.error(dl)
             return
 
-
-    booking = db.get_booking_by_dl(dl)
+    _raw    = db.get_booking_by_dl(dl)
+    booking = dict(_raw) if _raw else None
 
     if booking:
         st.markdown("### Active Booking")
@@ -1419,7 +1406,6 @@ def show_find_my_booking(db, logged_in: bool = False):
     else:
         st.info("No active booking found for this driver's license.")
 
-
     if logged_in:
         waitlist = db.get_waitlist_for_user(st.session_state.user_id)
         if waitlist:
@@ -1458,7 +1444,6 @@ def show_find_my_booking(db, logged_in: bool = False):
                     st.success("You have been removed from the waitlist.")
                     st.rerun()
 
-
         _check_waitlist_offer(db)
 
     if dl:
@@ -1489,7 +1474,6 @@ def show_find_my_booking(db, logged_in: bool = False):
 
 
 def _show_postpone_flow(db, booking, postpone_count):
-
     st.markdown("---")
     st.markdown("#### Postpone Appointment")
 
@@ -1550,10 +1534,11 @@ def _show_postpone_flow(db, booking, postpone_count):
             )
             if wl_id:
                 pos = db.get_waitlist_position(wl_id)
+                stn_name = stn["name"] if stn else "your station"
                 send_postponement_waitlisted(
                     booking["email"], booking["full_name"],
                     booking["token"],
-                    stn["name"] if stn else "your station",
+                    stn_name,
                     booking["slot_datetime"]
                 )
                 st.success(
@@ -1591,10 +1576,11 @@ def _show_postpone_flow(db, booking, postpone_count):
                             old_slot  = booking["slot_datetime"]
                             db.postpone_booking(booking["token"], slot_str)
                             new_count = postpone_count + 1
+                            stn_name  = stn["name"] if stn else "your station"
                             send_postponement_confirmed(
                                 booking["email"], booking["full_name"],
                                 booking["token"],
-                                stn["name"] if stn else "your station",
+                                stn_name,
                                 old_slot, slot_str,
                                 booking["fuel_type"],
                                 booking["requested_amount"],
@@ -1615,7 +1601,6 @@ def _show_postpone_flow(db, booking, postpone_count):
 
 
 def _show_cancel_confirm(db, booking):
-
     st.markdown("---")
     st.markdown("#### Cancel Booking")
 
@@ -1651,13 +1636,14 @@ def _show_cancel_confirm(db, booking):
             if check["hours"] > 0:
                 susp = db.get_active_suspension(booking["driver_license"])
                 if susp:
-                    penalty_msg = format_suspension_message(susp)
+                    penalty_msg = format_suspension_message(dict(susp))
 
+            station_name = booking.get("station_name", "your station")
             send_booking_cancelled_by_user(
                 booking["email"],
                 booking["full_name"],
                 booking["token"],
-                booking.get("station_name", "your station"),
+                station_name,
                 booking["slot_datetime"],
                 penalty_msg
             )
@@ -1676,9 +1662,9 @@ def _show_cancel_confirm(db, booking):
 
 
 def _check_waitlist_offer(db):
-
-    uid   = st.session_state.user_id
-    offer = db.get_active_waitlist_offer(uid)
+    uid        = st.session_state.user_id
+    _raw_offer = db.get_active_waitlist_offer(uid)
+    offer      = dict(_raw_offer) if _raw_offer else None
 
     if not offer:
         return
@@ -1697,7 +1683,7 @@ def _check_waitlist_offer(db):
     est   = calculate_cost(offer["requested_amount"], price)
 
     token_disp = ""
-    if offer["original_booking_id"]:
+    if offer.get("original_booking_id"):
         c = db.conn.cursor()
         c.execute("SELECT token FROM bookings WHERE id=?",
                   (offer["original_booking_id"],))
@@ -1742,7 +1728,6 @@ def _check_waitlist_offer(db):
                 price, slot_str
             )
 
-
             c = db.conn.cursor()
             c.execute(
                 "UPDATE waitlist SET status='accepted' WHERE id=?",
@@ -1770,7 +1755,6 @@ def _check_waitlist_offer(db):
 
     with col2:
         if st.button("❌ Decline", use_container_width=True):
-           
             c = db.conn.cursor()
             c.execute(
                 "UPDATE waitlist SET status='declined' WHERE id=?",
@@ -1794,8 +1778,11 @@ def _check_waitlist_offer(db):
 
 @require_role("station_admin")
 def show_station_dashboard(db, station_id: int):
+    stn = db.get_station_by_id(station_id)
+    if not stn:
+        st.error("Station not found. Please contact support.")
+        return
 
-    stn            = db.get_station_by_id(station_id)
     health         = db.get_station_health(station_id)
     today_bookings = db.get_todays_bookings_for_station(station_id)
 
@@ -1843,7 +1830,6 @@ def show_station_dashboard(db, station_id: int):
 
     sub_tabs = st.tabs(["📋 Appointments", "🚶 Requests"])
 
-
     with sub_tabs[0]:
         bookings = db.get_todays_bookings_for_station(station_id)
         emr      = db.get_todays_emergency_for_station(station_id)
@@ -1851,9 +1837,9 @@ def show_station_dashboard(db, station_id: int):
         all_rows = []
 
         for b in bookings:
-            late    = is_slot_late(b["slot_datetime"])
-            row_bg  = "#FFB30015" if late else "#132039"
-            status  = "⏰ Late" if late else "📅 Scheduled"
+            late   = is_slot_late(b["slot_datetime"])
+            row_bg = "#FFB30015" if late else "#132039"
+            status = "⏰ Late" if late else "📅 Scheduled"
 
             all_rows.append({
                 "token":   b["token"],
@@ -1917,7 +1903,6 @@ def show_station_dashboard(db, station_id: int):
                     f'</div>',
                     unsafe_allow_html=True
                 )
-
 
     with sub_tabs[1]:
         pending = db.get_pending_walkins(station_id)
@@ -2014,7 +1999,6 @@ def show_station_dashboard(db, station_id: int):
 
 @require_role("station_admin")
 def show_verify_token(db, station_id: int):
-
     st.markdown("## 🔍 Verify Token")
 
     token_input = st.text_input(
@@ -2028,9 +2012,11 @@ def show_verify_token(db, station_id: int):
         is_emergency = token_input.startswith("EX-")
 
         if is_emergency:
-            booking = db.get_emergency_by_token(token_input)
+            _raw = db.get_emergency_by_token(token_input)
         else:
-            booking = db.get_booking_by_token(token_input)
+            _raw = db.get_booking_by_token(token_input)
+
+        booking = dict(_raw) if _raw else None
 
         if not booking:
             st.error("Token not found. Please check and try again.")
@@ -2152,16 +2138,15 @@ def show_verify_token(db, station_id: int):
                         now_str = datetime.now().strftime(
                             "%Y-%m-%d %H:%M:%S"
                         )
-                        receipt = (
+                        stn_name = stn_obj["name"] if stn_obj else "Station"
+                        receipt  = (
                             generate_emergency_receipt_text(
-                                dict(booking),
-                                stn_obj["name"] if stn_obj else "Station",
+                                booking, stn_name,
                                 validated_actual, now_str
                             )
                             if is_emergency
                             else generate_receipt_text(
-                                dict(booking),
-                                stn_obj["name"] if stn_obj else "Station",
+                                booking, stn_name,
                                 validated_actual, now_str
                             )
                         )
@@ -2183,7 +2168,6 @@ def show_verify_token(db, station_id: int):
 
 @require_role("station_admin")
 def show_station_analytics(db, station_id: int):
-
     st.markdown("## 📊 Station Analytics")
     period = period_selector("stn_analytics")
     data   = db.get_station_analytics(station_id, period)
@@ -2246,10 +2230,12 @@ def show_station_analytics(db, station_id: int):
 
 @require_role("station_admin")
 def show_pump_management(db, station_id: int):
-
     st.markdown("## 🔧 Pump Management")
     stn        = db.get_station_by_id(station_id)
-    pump_count = stn["pump_count"] if stn else 2
+    if not stn:
+        st.error("Station not found.")
+        return
+    pump_count = stn["pump_count"]
 
     st.markdown(f"**Station:** {stn['name']}  |  **Pumps:** {pump_count}")
     st.markdown("---")
@@ -2275,7 +2261,7 @@ def show_pump_management(db, station_id: int):
                 for b in today_bookings:
                     if b["status"] == "scheduled":
                         db.cancel_booking(b["token"])
-                        area   = stn["area"] if stn else ""
+                        area   = stn["area"]
                         nearby = get_adjacent_areas(area)
                         send_booking_cancelled_by_system(
                             b["email"], b["full_name"],
@@ -2319,21 +2305,17 @@ def show_pump_management(db, station_id: int):
                     f"Pump {pump_num} — maintenance flagged",
                     "fuel"
                 )
-                st.info(
-                    f"Pump {pump_num} flagged for maintenance."
-                )
+                st.info(f"Pump {pump_num} flagged for maintenance.")
 
 
 @require_role("station_admin")
 def show_inventory_management(db, station_id: int):
-
     st.markdown("## 📦 Inventory Management")
     stn    = db.get_station_by_id(station_id)
-    health = db.get_station_health(station_id)
-
     if not stn:
         st.error("Station not found.")
         return
+    health = db.get_station_health(station_id)
 
     col_h, col_wi = st.columns([3, 1])
     with col_h:
@@ -2430,6 +2412,7 @@ def show_inventory_management(db, station_id: int):
     else:
         st.caption("No resupply history.")
 
+
 @require_role("government_official")
 def show_govt_control_panel(db, section: str = "fuel"):
     if section == "fuel":
@@ -2439,7 +2422,6 @@ def show_govt_control_panel(db, section: str = "fuel"):
 
 
 def _show_govt_fuel(db):
-
     st.markdown("## ⛽ Fuel Management")
 
     all_stations = db.get_all_stations()
@@ -2477,7 +2459,6 @@ def _show_govt_fuel(db):
         "🔍 Search", "📋 Audit Log"
     ])
 
-
     with analytics_tab:
         period = period_selector("govt_analytics")
         data   = db.get_national_analytics(period)
@@ -2514,7 +2495,6 @@ def _show_govt_fuel(db):
                 "Status":   HEALTH_LABELS.get(h, h),
             })
         st.dataframe(pd.DataFrame(rows), use_container_width=True)
-
 
     with trajectory_tab:
         st.markdown("### Stock Trajectory")
@@ -2557,7 +2537,6 @@ def _show_govt_fuel(db):
                         pass
                 st.caption(f"Last resupply: {rs_str}{flag}")
 
-
     with compare_tab:
         st.markdown("### Station Comparison")
         stn_names = [s["name"] for s in all_stations]
@@ -2587,7 +2566,6 @@ def _show_govt_fuel(db):
                 st.dataframe(
                     pd.DataFrame(comp_rows), use_container_width=True
                 )
-
 
     with limits_tab:
         st.markdown("### Daily Limit Control")
@@ -2634,7 +2612,6 @@ def _show_govt_fuel(db):
                         f"Limit updated: {lim_veh} + {lim_fuel} = {lim_val}L"
                     )
                     st.rerun()
-
 
     with prices_tab:
         st.markdown("### Fuel Price Management")
@@ -2684,7 +2661,6 @@ def _show_govt_fuel(db):
                         f"Applies to new bookings only."
                     )
                     st.rerun()
-
 
     with vehicles_tab:
         st.markdown("### Emergency Vehicle Registry")
@@ -2771,7 +2747,6 @@ def _show_govt_fuel(db):
                     st.success(f"Vehicle {cleaned} registered.")
                     st.rerun()
 
-
     with announce_tab:
         st.markdown("### Announcements")
         all_ann = db.get_all_announcements()
@@ -2838,7 +2813,6 @@ def _show_govt_fuel(db):
                     st.success("Announcement published.")
                     st.rerun()
 
-
     with reset_tab:
         st.markdown("### Admin Password Reset")
         admins = db.get_all_admins()
@@ -2873,7 +2847,6 @@ def _show_govt_fuel(db):
                     "They must change it on next login."
                 )
 
-
     with search_tab:
         st.markdown("### Plate / License Search")
         search_type = st.radio(
@@ -2907,18 +2880,18 @@ def _show_govt_fuel(db):
 
                     susp = db.get_active_suspension(cleaned)
                     if susp:
+                        susp_dict = dict(susp)
                         st.markdown(
                             f'<div style="background:#FF3D0015;'
                             f'border:1px solid #FF3D00;padding:12px;'
                             f'border-radius:8px;margin:8px 0">'
                             f'🚫 <strong>Active Suspension</strong><br>'
-                            f'{format_suspension_message(susp)}'
+                            f'{format_suspension_message(susp_dict)}'
                             f'</div>',
                             unsafe_allow_html=True
                         )
-                        if st.button("Lift Suspension",
-                                     key="lift_susp"):
-                            st.session_state["show_lift"] = susp["id"]
+                        if st.button("Lift Suspension", key="lift_susp"):
+                            st.session_state["show_lift"] = susp_dict["id"]
                             st.rerun()
 
                     if st.session_state.get("show_lift"):
@@ -2950,9 +2923,7 @@ def _show_govt_fuel(db):
                                         cleaned
                                     )
                                     st.success("Suspension lifted.")
-                                    st.session_state.pop(
-                                        "show_lift", None
-                                    )
+                                    st.session_state.pop("show_lift", None)
                                     st.rerun()
 
             if results:
@@ -2974,7 +2945,6 @@ def _show_govt_fuel(db):
             else:
                 st.info("No booking history found.")
 
-
     with audit_tab:
         st.markdown("### Fuel Audit Log")
         log = db.get_audit_log(log_type="fuel", limit=100)
@@ -2995,7 +2965,6 @@ def _show_govt_fuel(db):
 
 
 def _show_govt_electricity(db):
-
     st.markdown("## ⚡ Electricity Management")
 
     analytics_tab, audit_tab = st.tabs([
@@ -3070,7 +3039,7 @@ def _show_govt_electricity(db):
                     key=lambda x: x["total_hours"] or 0,
                     reverse=True
                 )
-                if sorted_data:
+                if len(sorted_data) > 1:
                     st.success(
                         f"Least affected: **{sorted_data[-1]['area']}** "
                         f"— {sorted_data[-1]['total_hours']:.1f} hrs"
