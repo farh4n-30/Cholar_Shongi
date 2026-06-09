@@ -1,5 +1,12 @@
-import streamlit as st
 import os
+os.environ["TZ"] = "Asia/Dhaka"
+try:
+    import time
+    time.tzset()
+except AttributeError:
+    pass
+
+import streamlit as st
 import sys
 
 
