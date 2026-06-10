@@ -405,7 +405,7 @@ def show_landing_sidebar():
         st.download_button(
             label="📥 Download User Manual",
             data=CHOLAR_SHONGI_MANUAL.encode("utf-8"),
-            file_name="Cholar_Shongi_User_Manual.txt",
+            file_name="Cholar_Shongi_User_Manual.pdf",
             mime="text/plain; charset=utf-8",
             use_container_width=True
         )
