@@ -406,7 +406,7 @@ def show_landing_sidebar():
             label="📥 Download User Manual",
             data=CHOLAR_SHONGI_MANUAL.encode("utf-8"),
             file_name="Cholar_Shongi_User_Manual.pdf",
-            mime="application/pdf"; charset=utf-8",
+            mime="application/pdf",
             use_container_width=True
         )
 
