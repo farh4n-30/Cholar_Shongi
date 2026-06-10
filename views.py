@@ -718,8 +718,8 @@ def show_advance_booking(db):
                         st.session_state.booking_step = 1
                     else:
                         st.warning(
-                            "You already have an active waitlist entry "
-                            "for this station."
+                            "Unable to join waitlist. You may already have an "
+                            "active booking or waitlist entry for this vehicle today."
                         )
 
         if st.button("← Back to Vehicle/Fuel", use_container_width=True):
@@ -1547,7 +1547,10 @@ def _show_postpone_flow(db, booking, postpone_count):
                 )
                 show_email_confirmation(booking["email"])
             else:
-                st.warning("Already on waitlist for this station.")
+                st.warning(
+                    "Unable to join waitlist. You may already have an "
+                    "active booking or waitlist entry for this vehicle today."
+                )
             st.session_state.pop("show_postpone", None)
             st.rerun()
     else:
