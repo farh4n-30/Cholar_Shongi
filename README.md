@@ -8,7 +8,7 @@ Built with Python and Streamlit as a first-year university course project.
 
 ## Live Demo
 
-[Click here to open the app](https://your-app-name.streamlit.app)
+[Click here to open the app]((https://cholar-shongi.streamlit.app/))
 
 ---
 
