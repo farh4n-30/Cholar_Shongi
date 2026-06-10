@@ -25,6 +25,7 @@ from auth import (
     get_active_suspension_message, require_role
 )
 from views import (
+
     show_electricity_public,
     show_pdb_dashboard,
     show_advance_booking,
@@ -251,145 +252,6 @@ Slot hold expired: Select a new slot.
 Vehicle not in emergency registry: Contact district authority.
 """
 
-@st.cache_data
-def build_manual_pdf() -> bytes:
-    """Render CHOLAR_SHONGI_MANUAL as a styled PDF and return the bytes."""
-    from io import BytesIO
-    from reportlab.lib.pagesizes import A4
-    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-    from reportlab.lib.units import cm
-    from reportlab.lib import colors
-    from reportlab.platypus import (
-        SimpleDocTemplate, Paragraph, Spacer, HRFlowable, PageBreak
-    )
-
-    buf = BytesIO()
-    doc = SimpleDocTemplate(
-        buf,
-        pagesize=A4,
-        leftMargin=2.5 * cm,
-        rightMargin=2.5 * cm,
-        topMargin=2.5 * cm,
-        bottomMargin=2.5 * cm,
-        title="Cholar Shongi User Manual",
-        author="Cholar Shongi",
-    )
-
-    BLUE   = colors.HexColor("#1E90FF")
-    GREEN  = colors.HexColor("#00C853")
-    LIGHT  = colors.HexColor("#B0BEC5")
-    WHITE  = colors.HexColor("#FFFFFF")
-    DARK   = colors.HexColor("#0A1628")
-
-    base = getSampleStyleSheet()
-
-    title_style = ParagraphStyle(
-        "ManualTitle",
-        parent=base["Title"],
-        fontSize=26,
-        leading=32,
-        textColor=BLUE,
-        spaceAfter=4,
-        fontName="Helvetica-Bold",
-    )
-    subtitle_style = ParagraphStyle(
-        "ManualSubtitle",
-        parent=base["Normal"],
-        fontSize=11,
-        textColor=GREEN,
-        spaceAfter=2,
-        fontName="Helvetica-Oblique",
-    )
-    section_style = ParagraphStyle(
-        "SectionHeading",
-        parent=base["Heading1"],
-        fontSize=13,
-        leading=18,
-        textColor=BLUE,
-        spaceBefore=14,
-        spaceAfter=4,
-        fontName="Helvetica-Bold",
-        borderPad=3,
-    )
-    body_style = ParagraphStyle(
-        "ManualBody",
-        parent=base["Normal"],
-        fontSize=10,
-        leading=15,
-        textColor=colors.HexColor("#1a1a2e"),   
-        spaceAfter=4,
-        fontName="Helvetica",
-    )
-    note_style = ParagraphStyle(
-        "ManualNote",
-        parent=body_style,
-        textColor=LIGHT,
-        fontSize=9,
-        fontName="Helvetica-Oblique",
-    )
-
-    story = []
-
-    story.append(Spacer(1, 1.2 * cm))
-    story.append(Paragraph("চলার সঙ্গী", title_style))
-    story.append(Paragraph("Cholar Shongi — Official User Manual", subtitle_style))
-    story.append(Paragraph("Version 1.0 &nbsp;|&nbsp; Bangladesh Fuel &amp; Power Management", note_style))
-    story.append(Spacer(1, 0.3 * cm))
-    story.append(HRFlowable(width="100%", thickness=2, color=BLUE, spaceAfter=10))
-
-
-    lines = CHOLAR_SHONGI_MANUAL.strip().splitlines()
-
-    skip_until_section = True
-
-    for line in lines:
-        stripped = line.strip()
-
-        if not stripped:
-            story.append(Spacer(1, 0.25 * cm))
-            continue
-
-
-        if stripped.startswith("SECTION ") and ":" in stripped:
-            if skip_until_section:
-                skip_until_section = False
-            story.append(HRFlowable(width="100%", thickness=0.5,
-                                    color=colors.HexColor("#1E90FF44"),
-                                    spaceBefore=6, spaceAfter=2))
-            story.append(Paragraph(stripped, section_style))
-            continue
-
-        if skip_until_section:
-            continue
-
-
-        if len(stripped) >= 2 and stripped[0].isdigit() and stripped[1] in ".":
-            story.append(Paragraph(
-                f"&nbsp;&nbsp;&nbsp;{stripped}",
-                body_style
-            ))
-            continue
-
-
-        if line.startswith("  ") and not stripped.startswith("SECTION"):
-            story.append(Paragraph(
-                f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{stripped}",
-                note_style
-            ))
-            continue
-
-
-        if stripped.endswith(":") and len(stripped) < 60:
-            story.append(Paragraph(f"<b>{stripped}</b>", body_style))
-            continue
-
-        story.append(Paragraph(stripped, body_style))
-
-    buf.seek(0)
-    return buf.read()
-
-
-
 def inject_css():
     st.markdown("""
     <style>
@@ -540,17 +402,13 @@ def show_landing_sidebar():
     with st.sidebar:
         st.markdown("### চলার সঙ্গী")
         st.markdown("---")
-
-
-        pdf_bytes = build_manual_pdf()
         st.download_button(
-            label="📥 Download User Manual (PDF)",
-            data=pdf_bytes,
-            file_name="Cholar_Shongi_User_Manual.pdf",
-            mime="application/pdf",
-            use_container_width=True,
+            label="📥 Download User Manual",
+            data=CHOLAR_SHONGI_MANUAL.encode("utf-8"),
+            file_name="Cholar_Shongi_User_Manual.txt",
+            mime="text/plain; charset=utf-8",
+            use_container_width=True
         )
-
 
         st.markdown("---")
         st.markdown("### 🏛️ Government Official")
@@ -742,13 +600,11 @@ def show_landing_page():
         unsafe_allow_html=True
     )
 
-
     show_lottie(
-        "https://assets9.lottiefiles.com/packages/lf20_kkflmtur.json",
-        height=200,
+        "https://assets4.lottiefiles.com/packages/lf20_touohxv0.json",
+        height=180,
         fallback="🏙️"
     )
-
 
     st.markdown("---")
     announcements = db.get_active_announcements()
