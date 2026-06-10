@@ -21,7 +21,6 @@ class DatabaseManager:
         self._create_all_tables()
         self._seed_if_empty()
 
-
     def _create_all_tables(self):
         c = self.conn.cursor()
 
@@ -376,6 +375,7 @@ class DatabaseManager:
             ("GEC Filling Station",       "Chattogram", "GEC",         "GEC Circle, Chattogram-4000",             200,  150,    0,  300, 2000, 2000, 1500, 1000),
             ("Halishahar Fuel Point",     "Chattogram", "Halishahar",  "Port Connecting Road, Chattogram-4204",  3800, 4100, 3500, 1700, 5000, 6000, 5000, 2500),
             ("Khulshi Premium Fuel",      "Chattogram", "Khulshi",     "Khulshi R/A, Chattogram-4225",           4900, 4800, 4700, 2100, 6000, 6000, 6000, 3000),
+            ("Badda Demo Station",        "Dhaka",      "Badda",       "Demo Road, Badda, Dhaka-1212",            500,  500,  500,  500, 1000, 1000, 1000, 1000),
         ]
         for s in stations:
             c.execute("""
@@ -400,6 +400,7 @@ class DatabaseManager:
             (11, "08:00", "18:00", "17:00", 2, 0),
             (12, "08:00", "20:00", "19:00", 3, 1),
             (13, "07:00", "22:00", "21:00", 4, 1),
+            (14, "08:00", "20:00", "19:00", 1, 1),
         ]
         for s in schedules:
             c.execute("""
@@ -432,7 +433,7 @@ class DatabaseManager:
             )
 
     def _seed_load_shedding(self):
-        c = self.conn.cursor()
+        c   = self.conn.cursor()
         now = datetime.now()
         f   = self._fmt
 
@@ -440,10 +441,10 @@ class DatabaseManager:
             (1, f(now-timedelta(hours=1)),    f(now+timedelta(hours=1)),    "Routine maintenance",   2, -48, True),
             (4, f(now-timedelta(minutes=30)), f(now+timedelta(minutes=90)), "Emergency grid repair", 2, -48, False),
             (6, f(now-timedelta(hours=2)),    f(now+timedelta(minutes=30)), "Scheduled maintenance", 2, -48, False),
-            (2, f(now+timedelta(hours=2)),    f(now+timedelta(hours=4)),    "Planned outage",        2, -24, False),
-            (3, f(now+timedelta(hours=3)),    f(now+timedelta(hours=5)),    "Transformer work",      2, -24, False),
-            (5, f(now+timedelta(hours=5)),    f(now+timedelta(hours=7)),    "Line maintenance",      2, -24, False),
-            (7, f(now+timedelta(hours=6)),    f(now+timedelta(hours=8)),    "Substation upgrade",    2, -24, False),
+            (2, f(now+timedelta(days=1, hours=2)),  f(now+timedelta(days=1, hours=4)),  "Planned outage",     2, -24, False),
+            (3, f(now+timedelta(days=1, hours=6)),  f(now+timedelta(days=1, hours=8)),  "Transformer work",   2, -24, False),
+            (5, f(now+timedelta(days=2, hours=3)),  f(now+timedelta(days=2, hours=5)),  "Line maintenance",   2, -24, False),
+            (7, f(now+timedelta(days=3, hours=10)), f(now+timedelta(days=3, hours=12)), "Substation upgrade", 2, -24, False),
             (8,  f(now-timedelta(hours=5)),  f(now-timedelta(hours=3)),    "Completed maintenance", 3, -72, False),
             (9,  f(now-timedelta(hours=8)),  f(now-timedelta(hours=6)),    "Emergency repair done", 3, -72, False),
             (10, f(now-timedelta(hours=10)), f(now-timedelta(hours=8)),    "Routine check done",    3, -72, False),
@@ -524,7 +525,7 @@ class DatabaseManager:
             """, v)
 
     def _seed_announcements(self):
-        c = self.conn.cursor()
+        c   = self.conn.cursor()
         now = datetime.now()
         rows = [
             (
@@ -550,7 +551,7 @@ class DatabaseManager:
             """, r)
 
     def _seed_bookings(self):
-        c  = self.conn.cursor()
+        c   = self.conn.cursor()
         now = datetime.now()
         f   = self._fmt
         my  = now.strftime("%Y-%m")
@@ -597,6 +598,7 @@ class DatabaseManager:
         ins("K9L0M1N2", 9, 1,"advance","Sedan","Octane","CTG-METRO-TA-22-4455","DL-CTG-8912-2022","Fatima Begum","fatima.begum@gmail.com",40,None,125.0,"cancelled",f(now-timedelta(days=3,hours=9)))
         ins("O3P4Q5R6",10, 1,"advance","SUV","Diesel","CTG-METRO-BA-33-6677","DL-CTG-1122-2021","Nusrat Jahan","nusrat.jahan@gmail.com",55,None,109.0,"cancelled",f(now-timedelta(days=1,hours=14)))
         ins("WI000001", 7, 1,"walkin","Sedan","Diesel","DHAKA-METRO-GA-11-2233","DL-DHK-2341-2021","Md. Rahim Uddin","rahim.uddin@gmail.com",35,None,109.0,"pending_approval",f(now-timedelta(minutes=15)))
+
         ins("T1U2V3W4", 7, 2,"advance","Sedan","Diesel","DHAKA-METRO-GA-11-2233","DL-DHK-2341-2021","Md. Rahim Uddin","rahim.uddin@gmail.com",44,44,109.0,"serviced",f(now-timedelta(days=6,hours=8)),f(now-timedelta(days=6,hours=7,minutes=53)))
         ins("X5Y6Z7A8", 8, 2,"advance","SUV","Diesel","DHAKA-METRO-GA-44-5566","DL-DHK-5672-2020","Md. Karim Miah","karim.miah@gmail.com",60,58,109.0,"serviced",f(now-timedelta(days=6,hours=9)),f(now-timedelta(days=6,hours=8,minutes=52)))
         ins("B9C0D1E2", 9, 2,"advance","Truck","Diesel","CTG-METRO-TA-22-4455","DL-CTG-8912-2022","Fatima Begum","fatima.begum@gmail.com",119,119,109.0,"serviced",f(now-timedelta(days=5,hours=10)),f(now-timedelta(days=5,hours=9,minutes=48)))
@@ -617,6 +619,7 @@ class DatabaseManager:
         ins("J9K0L1M2", 8, 2,"advance","Motorcycle (Personal)","Petrol","DHAKA-METRO-KA-05-1122","DL-DHK-5672-2020","Md. Karim Miah","karim.miah@gmail.com",4,None,122.0,"cancelled",f(now-timedelta(days=4,hours=9)))
         ins("N3O4P5Q6", 9, 2,"advance","Sedan","Petrol","CTG-METRO-TA-22-4455","DL-CTG-8912-2022","Fatima Begum","fatima.begum@gmail.com",36,None,122.0,"cancelled",f(now-timedelta(days=3,hours=9)))
         ins("R7S8T9U0",10, 2,"advance","SUV","Octane","CTG-METRO-BA-33-6677","DL-CTG-1122-2021","Nusrat Jahan","nusrat.jahan@gmail.com",55,None,125.0,"cancelled",f(now-timedelta(days=2,hours=9)))
+
         ins("V1W2X3Y4", 9, 3,"advance","Sedan","Octane","CTG-METRO-TA-22-4455","DL-CTG-8912-2022","Fatima Begum","fatima.begum@gmail.com",38,38,125.0,"serviced",f(now-timedelta(days=7,hours=9)),f(now-timedelta(days=7,hours=8,minutes=53)))
         ins("Z5A6B7C8",10, 3,"advance","SUV","Diesel","CTG-METRO-BA-33-6677","DL-CTG-1122-2021","Nusrat Jahan","nusrat.jahan@gmail.com",60,58,109.0,"serviced",f(now-timedelta(days=6,hours=10)),f(now-timedelta(days=6,hours=9,minutes=52)))
         ins("D9E0F1G2", 9, 3,"advance","Truck","Diesel","CTG-METRO-TA-22-4455","DL-CTG-8912-2022","Fatima Begum","fatima.begum@gmail.com",116,116,109.0,"serviced",f(now-timedelta(days=5,hours=11)),f(now-timedelta(days=5,hours=9,minutes=48)))
@@ -632,6 +635,18 @@ class DatabaseManager:
         ins("R9S0T1U2", 9, 3,"advance","Sedan","Petrol","CTG-METRO-TA-22-4455","DL-CTG-8912-2022","Fatima Begum","fatima.begum@gmail.com",37,None,122.0,"no_show",f(now-timedelta(days=4,hours=9)))
         ins("V3W4X5Y6",10, 3,"advance","Sedan","Diesel","CTG-METRO-BA-33-6677","DL-CTG-1122-2021","Nusrat Jahan","nusrat.jahan@gmail.com",44,None,109.0,"cancelled",f(now-timedelta(days=3,hours=9)))
         ins("Z7A8B9C0", 9, 3,"advance","Motorcycle (Personal)","Octane","CTG-METRO-TA-22-4455","DL-CTG-8912-2022","Fatima Begum","fatima.begum@gmail.com",5,None,125.0,"cancelled",f(now-timedelta(days=2,hours=9)))
+
+        today      = date.today()
+        base_time  = datetime.combine(today, datetime.min.time().replace(hour=8, minute=0))
+        for i in range(110):
+            slot_time  = base_time + timedelta(minutes=6 * i)
+            token      = f"FILL{i:04d}"
+            plate_num  = f"{i:04d}"
+            plate      = f"DHAKA-METRO-ZZ-{(i % 99):02d}-{plate_num}"
+            ins(token, 7, 14, "advance", "Sedan", "Octane",
+                plate, "DL-DHK-2341-2021", "Md. Rahim Uddin",
+                "rahim.uddin@gmail.com",
+                35, None, 125.0, "scheduled", f(slot_time))
 
         self.conn.commit()
 
@@ -660,8 +675,8 @@ class DatabaseManager:
         self.conn.commit()
 
     def _seed_waitlist(self):
-        c   = self.conn.cursor()
-        now = datetime.now()
+        c        = self.conn.cursor()
+        now      = datetime.now()
         midnight = datetime.combine(
             date.today(), datetime.max.time()
         ).replace(microsecond=0)
@@ -724,11 +739,11 @@ class DatabaseManager:
         f   = self._fmt
 
         rows = [
-            (1, "Octane",   3000, 4, f(now-timedelta(days=4))),
-            (1, "Diesel",   2000, 4, f(now-timedelta(days=2))),
-            (1, "Petrol",   1500, 4, f(now-timedelta(days=3))),
-            (3, "Diesel",   2000, 6, f(now-timedelta(days=5))),
-            (3, "Octane",   1500, 6, f(now-timedelta(days=3))),
+            (1, "Octane",  3000, 4, f(now-timedelta(days=4))),
+            (1, "Diesel",  2000, 4, f(now-timedelta(days=2))),
+            (1, "Petrol",  1500, 4, f(now-timedelta(days=3))),
+            (3, "Diesel",  2000, 6, f(now-timedelta(days=5))),
+            (3, "Octane",  1500, 6, f(now-timedelta(days=3))),
         ]
         for r in rows:
             sid, ftype, qty, logged_by, logged_at = r
@@ -1221,6 +1236,17 @@ class DatabaseManager:
         """, (plate, today))
         return c.fetchone()
 
+    def _plate_has_active_waitlist(self, plate):
+        c     = self.conn.cursor()
+        today = date.today().strftime("%Y-%m-%d")
+        c.execute("""
+            SELECT id FROM waitlist
+            WHERE license_plate=?
+            AND status IN ('waiting', 'notified')
+            AND DATE(expires_at) >= ?
+        """, (plate, today))
+        return c.fetchone() is not None
+
     def get_booking_by_dl(self, dl):
         c = self.conn.cursor()
         c.execute("""
@@ -1307,10 +1333,10 @@ class DatabaseManager:
         return c.lastrowid
 
     def approve_walkin(self, booking_id, current_price):
-        now_str  = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        c        = self.conn.cursor()
+        now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        c       = self.conn.cursor()
         c.execute("SELECT * FROM bookings WHERE id=?", (booking_id,))
-        b        = c.fetchone()
+        b       = c.fetchone()
         if not b:
             return False
         est_cost = b["requested_amount"] * current_price
@@ -1526,7 +1552,7 @@ class DatabaseManager:
 
         c.execute("""
             SELECT s.name, s.city,
-                   COUNT(*)                          AS cnt,
+                   COUNT(*)                            AS cnt,
                    COALESCE(SUM(b.actual_dispensed),0) AS dispensed
             FROM bookings b
             JOIN stations s ON s.id = b.station_id
@@ -1569,6 +1595,7 @@ class DatabaseManager:
     def validate_booking_request(self, station_id, vehicle_type,
                                   fuel_type, plate, dl, amount):
         errors = []
+
         suspension = self.get_active_suspension(dl)
         if suspension:
             try:
@@ -1587,6 +1614,14 @@ class DatabaseManager:
             errors.append(
                 "This vehicle has already been booked for fuel today. "
                 "Each vehicle may only be booked once per calendar day."
+            )
+            return errors
+
+        if self._plate_has_active_waitlist(plate):
+            errors.append(
+                "This vehicle is currently on a waitlist. "
+                "Please wait for the waitlist offer or leave the "
+                "waitlist before making a new booking."
             )
             return errors
 
@@ -1657,11 +1692,15 @@ class DatabaseManager:
         """)
         return c.fetchall()
 
-
     def join_waitlist(self, user_id, station_id, fuel_type,
                       vehicle_type, plate, amount,
                       waitlist_type="advance",
                       original_booking_id=None, days_ahead=0):
+
+        existing_booking = self.get_plate_booked_today(plate)
+        if existing_booking:
+            return None
+
         now = datetime.now()
         if waitlist_type == "advance":
             exp = datetime.combine(
@@ -1672,7 +1711,6 @@ class DatabaseManager:
             exp = now + timedelta(days=3)
 
         c = self.conn.cursor()
-
         c.execute("""
             SELECT id FROM waitlist
             WHERE user_id=? AND station_id=? AND fuel_type=?
@@ -1811,7 +1849,6 @@ class DatabaseManager:
         """, (fuel_type, price, user_id, price, user_id))
         self.conn.commit()
 
-
     def check_emergency_vehicle(self, reg_number):
         c = self.conn.cursor()
         c.execute("""
@@ -1932,7 +1969,6 @@ class DatabaseManager:
         """, (limit,))
         return c.fetchall()
 
-
     def get_active_announcements(self):
         c = self.conn.cursor()
         c.execute("""
@@ -1992,7 +2028,6 @@ class DatabaseManager:
             """, (limit,))
         return c.fetchall()
 
-
     def search_by_plate(self, plate):
         c = self.conn.cursor()
         c.execute("""
@@ -2014,7 +2049,6 @@ class DatabaseManager:
             ORDER BY b.created_at DESC
         """, (dl,))
         return c.fetchall()
-
 
     def add_restriction(self, rtype, value, max_bookings,
                         period_hours, user_id):
@@ -2047,7 +2081,7 @@ class DatabaseManager:
         self._mark_no_shows()
         self._expire_waitlist_entries()
         self._reset_stale_6month_counters()
-        
+
     def _mark_no_shows(self):
         c     = self.conn.cursor()
         today = date.today().strftime("%Y-%m-%d")
@@ -2115,10 +2149,7 @@ class DatabaseManager:
             WHERE status='waiting'
             AND expires_at < datetime('now')
         """)
-        try:
-            self.conn.commit()
-        except Exception:
-            pass
+        self.conn.commit()
 
     def _reset_stale_6month_counters(self):
         c = self.conn.cursor()
