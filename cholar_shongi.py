@@ -64,13 +64,13 @@ def init_session_state():
         "requested_amount": None,
         "selected_slot":    None,
         "force_pw_change":  False,
-        "fuel_view": None,
-        "show_postpone": False,
+        "fuel_view":        None,
+        "show_postpone":    False,
         "show_cancel_confirm": False,
-        "show_full_grid": False,
+        "show_full_grid":   False,
         "confirm_station_close": False,
-        "show_lift": None,
-        "emr_verified": None
+        "show_lift":        None,
+        "emr_verified":     None
     }
     for key, value in defaults.items():
         if key not in st.session_state:
@@ -90,7 +90,7 @@ CHOLAR SHONGI — OFFICIAL USER MANUAL
 Version 1.0 | Bangladesh Fuel & Power Management
 
 SECTION 1: GETTING STARTED
-Cholar Shongi is Bangladesh's smart guide to fuel booking
+Cholar Shongi (চলার সঙ্গী) is Bangladesh's smart guide to fuel booking
 and electricity schedule management. The app has two main segments:
   Electricity: Check power cut schedules for your area.
   Fuel: Book fuel appointments at stations.
@@ -251,18 +251,19 @@ Slot hold expired: Select a new slot.
 Vehicle not in emergency registry: Contact district authority.
 """
 
-# ── PDF manual generator ──────────────────────────────────────────────────────
-@st.cache_data
-def build_manual_pdf() -> bytes:
-    """Render CHOLAR_SHONGI_MANUAL as a styled PDF and return the bytes."""
+
+# ── PDF manual — generated once at module load ────────────────────────────────
+def _build_manual_pdf_bytes() -> bytes:
     from io import BytesIO
     from reportlab.lib.pagesizes import A4
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
     from reportlab.lib.units import cm
     from reportlab.lib import colors
-    from reportlab.platypus import (
-        SimpleDocTemplate, Paragraph, Spacer, HRFlowable, PageBreak
-    )
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, HRFlowable
+
+    BLUE  = colors.HexColor("#1E90FF")
+    GREEN = colors.HexColor("#00C853")
+    LIGHT = colors.HexColor("#B0BEC5")
 
     buf = BytesIO()
     doc = SimpleDocTemplate(
@@ -276,120 +277,99 @@ def build_manual_pdf() -> bytes:
         author="Cholar Shongi",
     )
 
-    # ── colour palette (matches the app's dark-blue theme) ───────────────────
-    BLUE   = colors.HexColor("#1E90FF")
-    GREEN  = colors.HexColor("#00C853")
-    LIGHT  = colors.HexColor("#B0BEC5")
-    WHITE  = colors.HexColor("#FFFFFF")
-    DARK   = colors.HexColor("#0A1628")
-
     base = getSampleStyleSheet()
 
     title_style = ParagraphStyle(
-        "ManualTitle",
-        parent=base["Title"],
-        fontSize=26,
-        leading=32,
-        textColor=BLUE,
-        spaceAfter=4,
-        fontName="Helvetica-Bold",
+        "MT", parent=base["Title"],
+        fontSize=24, leading=30, textColor=BLUE,
+        spaceAfter=4, fontName="Helvetica-Bold",
     )
-    subtitle_style = ParagraphStyle(
-        "ManualSubtitle",
-        parent=base["Normal"],
-        fontSize=11,
-        textColor=GREEN,
-        spaceAfter=2,
-        fontName="Helvetica-Oblique",
+    sub_style = ParagraphStyle(
+        "MS", parent=base["Normal"],
+        fontSize=11, textColor=GREEN,
+        spaceAfter=2, fontName="Helvetica-Oblique",
+    )
+    ver_style = ParagraphStyle(
+        "MV", parent=base["Normal"],
+        fontSize=9, textColor=LIGHT,
+        spaceAfter=6, fontName="Helvetica-Oblique",
     )
     section_style = ParagraphStyle(
-        "SectionHeading",
-        parent=base["Heading1"],
-        fontSize=13,
-        leading=18,
-        textColor=BLUE,
-        spaceBefore=14,
-        spaceAfter=4,
+        "MH", parent=base["Heading1"],
+        fontSize=13, leading=18, textColor=BLUE,
+        spaceBefore=14, spaceAfter=4,
         fontName="Helvetica-Bold",
-        borderPad=3,
     )
     body_style = ParagraphStyle(
-        "ManualBody",
-        parent=base["Normal"],
-        fontSize=10,
-        leading=15,
-        textColor=colors.HexColor("#1a1a2e"),   # near-black for readability on white
-        spaceAfter=4,
-        fontName="Helvetica",
+        "MB", parent=base["Normal"],
+        fontSize=10, leading=15,
+        textColor=colors.HexColor("#222222"),
+        spaceAfter=3, fontName="Helvetica",
     )
     note_style = ParagraphStyle(
-        "ManualNote",
-        parent=body_style,
-        textColor=LIGHT,
-        fontSize=9,
+        "MN", parent=body_style,
+        fontSize=9, textColor=LIGHT,
         fontName="Helvetica-Oblique",
     )
 
-    story = []
+    story = [
+        Spacer(1, 1 * cm),
+        Paragraph("Cholar Shongi", title_style),
+        Paragraph("চলার সঙ্গী  —  Official User Manual", sub_style),
+        Paragraph(
+            "Version 1.0  |  Bangladesh Fuel &amp; Power Management",
+            ver_style,
+        ),
+        Spacer(1, 0.3 * cm),
+        HRFlowable(width="100%", thickness=2, color=BLUE, spaceAfter=10),
+    ]
 
-    # ── Cover block ───────────────────────────────────────────────────────────
-    story.append(Spacer(1, 1.2 * cm))
-    story.append(Paragraph("চলার সঙ্গী", title_style))
-    story.append(Paragraph("Cholar Shongi — Official User Manual", subtitle_style))
-    story.append(Paragraph("Version 1.0 &nbsp;|&nbsp; Bangladesh Fuel &amp; Power Management", note_style))
-    story.append(Spacer(1, 0.3 * cm))
-    story.append(HRFlowable(width="100%", thickness=2, color=BLUE, spaceAfter=10))
+    skip = True
+    for line in CHOLAR_SHONGI_MANUAL.strip().splitlines():
+        s = line.strip()
 
-    # ── Parse the plain-text manual into sections ─────────────────────────────
-    lines = CHOLAR_SHONGI_MANUAL.strip().splitlines()
-    # skip the first two lines (already used as title/subtitle above)
-    skip_until_section = True
-
-    for line in lines:
-        stripped = line.strip()
-
-        if not stripped:
-            story.append(Spacer(1, 0.25 * cm))
+        if not s:
+            story.append(Spacer(1, 0.2 * cm))
             continue
 
-        # Detect section headings like "SECTION 1: ..."
-        if stripped.startswith("SECTION ") and ":" in stripped:
-            if skip_until_section:
-                skip_until_section = False
-            story.append(HRFlowable(width="100%", thickness=0.5,
-                                    color=colors.HexColor("#1E90FF44"),
-                                    spaceBefore=6, spaceAfter=2))
-            story.append(Paragraph(stripped, section_style))
-            continue
-
-        if skip_until_section:
-            continue
-
-        # Numbered list items
-        if len(stripped) >= 2 and stripped[0].isdigit() and stripped[1] in ".":
-            story.append(Paragraph(
-                f"&nbsp;&nbsp;&nbsp;{stripped}",
-                body_style
+        if s.startswith("SECTION ") and ":" in s:
+            skip = False
+            story.append(HRFlowable(
+                width="100%", thickness=0.5,
+                color=colors.HexColor("#1E90FF55"),
+                spaceBefore=6, spaceAfter=2,
             ))
+            story.append(Paragraph(s, section_style))
             continue
 
-        # Indented sub-items (lines starting with spaces in the original)
-        if line.startswith("  ") and not stripped.startswith("SECTION"):
-            story.append(Paragraph(
-                f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{stripped}",
-                note_style
-            ))
+        if skip:
             continue
 
-        # "Important rules:" / bold-like labels
-        if stripped.endswith(":") and len(stripped) < 60:
-            story.append(Paragraph(f"<b>{stripped}</b>", body_style))
+        # Escape raw & before passing to ReportLab's XML parser
+        safe = s.replace("&", "&amp;")
+
+        if len(s) >= 2 and s[0].isdigit() and s[1] == ".":
+            story.append(Paragraph(f"&nbsp;&nbsp;&nbsp;{safe}", body_style))
             continue
 
-        story.append(Paragraph(stripped, body_style))
+        if line.startswith("  ") and not s.startswith("SECTION"):
+            story.append(Paragraph(f"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{safe}", note_style))
+            continue
 
-    buf.seek(0)
-    return buf.read()
+        if s.endswith(":") and len(s) < 60:
+            story.append(Paragraph(f"<b>{safe}</b>", body_style))
+            continue
+
+        story.append(Paragraph(safe, body_style))
+
+    doc.build(story)
+    return buf.getvalue()
+
+
+try:
+    MANUAL_PDF_BYTES: bytes = _build_manual_pdf_bytes()
+except Exception:
+    MANUAL_PDF_BYTES = b""
 # ─────────────────────────────────────────────────────────────────────────────
 
 
@@ -510,50 +490,64 @@ def inject_css():
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     header {visibility: hidden;}
+
+    /* ── Cyberpunk skyline animation ── */
+    .skyline-wrap {
+        width: 100%;
+        overflow: hidden;
+        height: 180px;
+        position: relative;
+        margin: 0 auto 8px auto;
+    }
+    .skyline-wrap svg {
+        width: 100%;
+        height: 100%;
+    }
+    @keyframes flicker {
+        0%, 95%, 100% { opacity: 1; }
+        96%            { opacity: 0.3; }
+        97%            { opacity: 1; }
+        98%            { opacity: 0.2; }
+        99%            { opacity: 0.9; }
+    }
+    @keyframes pulse {
+        0%, 100% { opacity: 0.9; }
+        50%       { opacity: 0.3; }
+    }
+    @keyframes drive {
+        from { transform: translateX(-60px); }
+        to   { transform: translateX(820px); }
+    }
+    @keyframes drive-back {
+        from { transform: translateX(820px); }
+        to   { transform: translateX(-60px); }
+    }
+    .spire-glow   { animation: flicker 6s infinite; }
+    .spire-glow-2 { animation: flicker 9s 2s infinite; }
+    .win-pulse    { animation: pulse 3s ease-in-out infinite; }
+    .win-pulse-2  { animation: pulse 4s 1s ease-in-out infinite; }
+    .win-pulse-3  { animation: pulse 2.5s 0.5s ease-in-out infinite; }
+    .car-r        { animation: drive 5s linear infinite; }
+    .car-l        { animation: drive-back 7s 1.5s linear infinite; }
     </style>
     """, unsafe_allow_html=True)
 
 inject_css()
 
-def load_lottie(url):
-    try:
-        import requests
-        r = requests.get(url, timeout=5)
-        if r.status_code == 200:
-            return r.json()
-    except Exception:
-        pass
-    return None
-
-def show_lottie(url, height=200, fallback="⚡"):
-    try:
-        from streamlit_lottie import st_lottie
-        data = load_lottie(url)
-        if data:
-            st_lottie(data, height=height, key=url)
-            return
-    except Exception:
-        pass
-    st.markdown(
-        f"<div style='text-align:center;font-size:80px;padding:20px'>{fallback}</div>",
-        unsafe_allow_html=True
-    )
 
 def show_landing_sidebar():
     with st.sidebar:
         st.markdown("### চলার সঙ্গী")
         st.markdown("---")
 
-        # ── PDF manual download (replaces the old .txt download) ─────────────
-        pdf_bytes = build_manual_pdf()
         st.download_button(
             label="📥 Download User Manual (PDF)",
-            data=pdf_bytes,
+            data=MANUAL_PDF_BYTES,
             file_name="Cholar_Shongi_User_Manual.pdf",
             mime="application/pdf",
             use_container_width=True,
+            disabled=len(MANUAL_PDF_BYTES) == 0,
         )
-        # ─────────────────────────────────────────────────────────────────────
 
         st.markdown("---")
         st.markdown("### 🏛️ Government Official")
@@ -584,6 +578,7 @@ def show_landing_sidebar():
                 if st.button("Logout", use_container_width=True):
                     logout_user()
                     st.rerun()
+
 
 def show_electricity_sidebar():
     with st.sidebar:
@@ -621,6 +616,7 @@ def show_electricity_sidebar():
                 if st.button("Logout", use_container_width=True):
                     logout_user()
                     st.rerun()
+
 
 def show_fuel_sidebar():
     with st.sidebar:
@@ -675,14 +671,14 @@ def show_fuel_sidebar():
 
                 with tab_reg:
                     with st.form("register_form"):
-                        reg_name = st.text_input("Full Name", key="reg_name")
+                        reg_name  = st.text_input("Full Name", key="reg_name")
                         reg_email = st.text_input("Email", key="reg_email")
-                        reg_dl = st.text_input(
+                        reg_dl    = st.text_input(
                             "Driver's License",
                             placeholder="DL-DHK-2341-2021",
                             key="reg_dl"
                         )
-                        reg_pass = st.text_input(
+                        reg_pass  = st.text_input(
                             "Password", type="password", key="reg_pass"
                         )
                         reg_pass2 = st.text_input(
@@ -729,6 +725,7 @@ def show_fuel_sidebar():
                         else:
                             st.error(result["message"])
 
+
 def show_landing_page():
     show_landing_sidebar()
     st.markdown(
@@ -745,16 +742,170 @@ def show_landing_page():
         unsafe_allow_html=True
     )
 
-    # ── Neon city / smart-city energy animation (replaces trophy) ────────────
-    # lf20_kkflmtur — animated neon cityscape with glowing skyline & light trails
-    # Directly relevant to urban Bangladesh, energy grids, and mobility.
-    # Falls back gracefully to 🏙️ emoji if streamlit-lottie is not installed
-    # or the CDN is unreachable.
-    show_lottie(
-        "https://assets9.lottiefiles.com/packages/lf20_kkflmtur.json",
-        height=200,
-        fallback="🏙️"
-    )
+    # ── Cyberpunk skyline — pure inline SVG, zero external dependencies ───────
+    st.markdown("""
+    <div class="skyline-wrap">
+      <svg viewBox="0 0 800 180" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%"   stop-color="#050d1a"/>
+            <stop offset="100%" stop-color="#0a1628"/>
+          </linearGradient>
+          <linearGradient id="gA" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#1a2a4a"/>
+            <stop offset="100%" stop-color="#0d1b30"/>
+          </linearGradient>
+          <linearGradient id="gB" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#162340"/>
+            <stop offset="100%" stop-color="#0a1525"/>
+          </linearGradient>
+          <filter id="neon-blue">
+            <feGaussianBlur stdDeviation="2.5" result="blur"/>
+            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+          <filter id="neon-green">
+            <feGaussianBlur stdDeviation="2" result="blur"/>
+            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+        </defs>
+
+        <!-- Sky -->
+        <rect width="800" height="180" fill="url(#sky)"/>
+
+        <!-- Stars -->
+        <circle cx="40"  cy="12" r="0.8" fill="#ffffff" opacity="0.6"/>
+        <circle cx="120" cy="8"  r="0.6" fill="#ffffff" opacity="0.5"/>
+        <circle cx="200" cy="18" r="0.9" fill="#ffffff" opacity="0.7"/>
+        <circle cx="320" cy="6"  r="0.7" fill="#ffffff" opacity="0.4"/>
+        <circle cx="450" cy="14" r="0.8" fill="#ffffff" opacity="0.6"/>
+        <circle cx="560" cy="9"  r="0.6" fill="#ffffff" opacity="0.5"/>
+        <circle cx="650" cy="20" r="0.7" fill="#ffffff" opacity="0.4"/>
+        <circle cx="740" cy="11" r="0.9" fill="#ffffff" opacity="0.6"/>
+        <circle cx="770" cy="5"  r="0.5" fill="#aaccff" opacity="0.5"/>
+        <circle cx="90"  cy="25" r="0.5" fill="#aaccff" opacity="0.4"/>
+        <circle cx="380" cy="22" r="0.6" fill="#aaccff" opacity="0.5"/>
+
+        <!-- Background buildings -->
+        <rect x="0"   y="90"  width="55"  height="90"  fill="#080f1e"/>
+        <rect x="50"  y="75"  width="40"  height="105" fill="#090e1c"/>
+        <rect x="85"  y="100" width="30"  height="80"  fill="#07101f"/>
+        <rect x="680" y="85"  width="50"  height="95"  fill="#080f1e"/>
+        <rect x="725" y="70"  width="45"  height="110" fill="#090e1c"/>
+        <rect x="760" y="95"  width="40"  height="85"  fill="#07101f"/>
+
+        <!-- Mid buildings -->
+        <rect x="10"  y="80"  width="50"  height="100" fill="url(#gB)"/>
+        <rect x="55"  y="60"  width="38"  height="120" fill="url(#gA)"/>
+        <rect x="88"  y="88"  width="32"  height="92"  fill="url(#gB)"/>
+        <rect x="115" y="50"  width="45"  height="130" fill="url(#gA)"/>
+        <rect x="155" y="70"  width="35"  height="110" fill="url(#gB)"/>
+        <rect x="600" y="65"  width="42"  height="115" fill="url(#gA)"/>
+        <rect x="637" y="80"  width="35"  height="100" fill="url(#gB)"/>
+        <rect x="667" y="55"  width="48"  height="125" fill="url(#gA)"/>
+        <rect x="710" y="72"  width="38"  height="108" fill="url(#gB)"/>
+        <rect x="743" y="85"  width="50"  height="95"  fill="url(#gA)"/>
+
+        <!-- Centre towers -->
+        <rect x="185" y="40"  width="55"  height="140" fill="url(#gA)"/>
+        <rect x="235" y="55"  width="42"  height="125" fill="url(#gB)"/>
+        <rect x="272" y="30"  width="60"  height="150" fill="url(#gA)"/>
+        <rect x="327" y="20"  width="70"  height="160" fill="url(#gB)"/>
+        <!-- Tallest spire -->
+        <rect x="390" y="10"  width="30"  height="170" fill="url(#gA)"/>
+        <!-- Antenna -->
+        <rect x="403" y="2"   width="4"   height="12"  fill="#1E90FF" class="spire-glow" filter="url(#neon-blue)"/>
+        <rect x="445" y="25"  width="65"  height="155" fill="url(#gB)"/>
+        <rect x="505" y="38"  width="52"  height="142" fill="url(#gA)"/>
+        <rect x="552" y="52"  width="48"  height="128" fill="url(#gB)"/>
+
+        <!-- Neon rooftop accents -->
+        <rect x="272" y="30"  width="60"  height="3" fill="#1E90FF" opacity="0.9" filter="url(#neon-blue)"  class="spire-glow"/>
+        <rect x="327" y="20"  width="70"  height="3" fill="#1E90FF" opacity="0.8" filter="url(#neon-blue)"  class="spire-glow-2"/>
+        <rect x="390" y="10"  width="30"  height="3" fill="#00C853" opacity="0.9" filter="url(#neon-green)" class="spire-glow"/>
+        <rect x="445" y="25"  width="65"  height="3" fill="#1E90FF" opacity="0.7" filter="url(#neon-blue)"  class="spire-glow-2"/>
+        <rect x="185" y="40"  width="55"  height="2" fill="#00C853" opacity="0.7" filter="url(#neon-green)" class="spire-glow-2"/>
+        <rect x="505" y="38"  width="52"  height="2" fill="#00C853" opacity="0.7" filter="url(#neon-green)" class="spire-glow"/>
+
+        <!-- Windows — left cluster -->
+        <rect x="58"  y="68"  width="5" height="4" fill="#1E90FF" opacity="0.6" class="win-pulse"/>
+        <rect x="66"  y="68"  width="5" height="4" fill="#1E90FF" opacity="0.5" class="win-pulse-2"/>
+        <rect x="58"  y="76"  width="5" height="4" fill="#1E90FF" opacity="0.4" class="win-pulse-3"/>
+        <rect x="66"  y="76"  width="5" height="4" fill="#aaddff" opacity="0.3" class="win-pulse"/>
+        <rect x="58"  y="84"  width="5" height="4" fill="#1E90FF" opacity="0.5" class="win-pulse-2"/>
+        <rect x="118" y="58"  width="5" height="4" fill="#1E90FF" opacity="0.6" class="win-pulse-3"/>
+        <rect x="126" y="58"  width="5" height="4" fill="#aaddff" opacity="0.4" class="win-pulse"/>
+        <rect x="134" y="58"  width="5" height="4" fill="#1E90FF" opacity="0.5" class="win-pulse-2"/>
+        <rect x="118" y="66"  width="5" height="4" fill="#1E90FF" opacity="0.3" class="win-pulse-3"/>
+        <rect x="126" y="66"  width="5" height="4" fill="#1E90FF" opacity="0.6" class="win-pulse"/>
+        <rect x="134" y="74"  width="5" height="4" fill="#aaddff" opacity="0.4" class="win-pulse-2"/>
+
+        <!-- Windows — centre cluster -->
+        <rect x="280" y="38"  width="5" height="4" fill="#1E90FF" opacity="0.7" class="win-pulse"/>
+        <rect x="288" y="38"  width="5" height="4" fill="#aaddff" opacity="0.5" class="win-pulse-2"/>
+        <rect x="296" y="38"  width="5" height="4" fill="#1E90FF" opacity="0.6" class="win-pulse-3"/>
+        <rect x="280" y="46"  width="5" height="4" fill="#1E90FF" opacity="0.4" class="win-pulse-2"/>
+        <rect x="288" y="46"  width="5" height="4" fill="#1E90FF" opacity="0.7" class="win-pulse"/>
+        <rect x="296" y="54"  width="5" height="4" fill="#aaddff" opacity="0.5" class="win-pulse-3"/>
+        <rect x="335" y="28"  width="5" height="4" fill="#00C853" opacity="0.5" class="win-pulse"/>
+        <rect x="343" y="28"  width="5" height="4" fill="#1E90FF" opacity="0.6" class="win-pulse-2"/>
+        <rect x="351" y="28"  width="5" height="4" fill="#1E90FF" opacity="0.4" class="win-pulse-3"/>
+        <rect x="335" y="36"  width="5" height="4" fill="#aaddff" opacity="0.5" class="win-pulse"/>
+        <rect x="343" y="36"  width="5" height="4" fill="#1E90FF" opacity="0.7" class="win-pulse-2"/>
+        <rect x="351" y="44"  width="5" height="4" fill="#00C853" opacity="0.4" class="win-pulse-3"/>
+        <rect x="397" y="18"  width="5" height="4" fill="#1E90FF" opacity="0.8" class="win-pulse"/>
+        <rect x="397" y="26"  width="5" height="4" fill="#aaddff" opacity="0.6" class="win-pulse-2"/>
+        <rect x="397" y="34"  width="5" height="4" fill="#1E90FF" opacity="0.5" class="win-pulse-3"/>
+        <rect x="397" y="42"  width="5" height="4" fill="#00C853" opacity="0.4" class="win-pulse"/>
+        <rect x="452" y="33"  width="5" height="4" fill="#1E90FF" opacity="0.6" class="win-pulse-2"/>
+        <rect x="460" y="33"  width="5" height="4" fill="#aaddff" opacity="0.5" class="win-pulse-3"/>
+        <rect x="468" y="33"  width="5" height="4" fill="#1E90FF" opacity="0.7" class="win-pulse"/>
+        <rect x="452" y="41"  width="5" height="4" fill="#1E90FF" opacity="0.4" class="win-pulse-2"/>
+        <rect x="460" y="49"  width="5" height="4" fill="#aaddff" opacity="0.5" class="win-pulse-3"/>
+
+        <!-- Windows — right cluster -->
+        <rect x="610" y="73"  width="5" height="4" fill="#1E90FF" opacity="0.6" class="win-pulse"/>
+        <rect x="618" y="73"  width="5" height="4" fill="#aaddff" opacity="0.4" class="win-pulse-2"/>
+        <rect x="610" y="81"  width="5" height="4" fill="#1E90FF" opacity="0.5" class="win-pulse-3"/>
+        <rect x="618" y="81"  width="5" height="4" fill="#1E90FF" opacity="0.7" class="win-pulse"/>
+        <rect x="670" y="63"  width="5" height="4" fill="#1E90FF" opacity="0.6" class="win-pulse-2"/>
+        <rect x="678" y="63"  width="5" height="4" fill="#aaddff" opacity="0.5" class="win-pulse-3"/>
+        <rect x="686" y="63"  width="5" height="4" fill="#1E90FF" opacity="0.4" class="win-pulse"/>
+        <rect x="670" y="71"  width="5" height="4" fill="#1E90FF" opacity="0.7" class="win-pulse-2"/>
+        <rect x="678" y="79"  width="5" height="4" fill="#aaddff" opacity="0.4" class="win-pulse-3"/>
+        <rect x="715" y="80"  width="5" height="4" fill="#1E90FF" opacity="0.5" class="win-pulse"/>
+        <rect x="723" y="80"  width="5" height="4" fill="#1E90FF" opacity="0.6" class="win-pulse-2"/>
+        <rect x="715" y="88"  width="5" height="4" fill="#aaddff" opacity="0.4" class="win-pulse-3"/>
+
+        <!-- Ground / road -->
+        <rect x="0" y="158" width="800" height="22" fill="#060d18"/>
+        <rect x="0" y="168" width="800" height="1"  fill="#0d1f35" opacity="0.8"/>
+        <rect x="50"  y="165" width="30" height="2" fill="#1a3050" opacity="0.5"/>
+        <rect x="160" y="165" width="30" height="2" fill="#1a3050" opacity="0.5"/>
+        <rect x="270" y="165" width="30" height="2" fill="#1a3050" opacity="0.5"/>
+        <rect x="380" y="165" width="30" height="2" fill="#1a3050" opacity="0.5"/>
+        <rect x="490" y="165" width="30" height="2" fill="#1a3050" opacity="0.5"/>
+        <rect x="600" y="165" width="30" height="2" fill="#1a3050" opacity="0.5"/>
+        <rect x="710" y="165" width="30" height="2" fill="#1a3050" opacity="0.5"/>
+
+        <!-- Car moving right (headlights) -->
+        <g class="car-r">
+          <rect x="0" y="160" width="18" height="6" rx="2" fill="#0a1525"/>
+          <circle cx="3"  cy="163" r="2.5" fill="#ffe8a0" opacity="0.95"/>
+          <circle cx="15" cy="163" r="2.5" fill="#ffe8a0" opacity="0.95"/>
+        </g>
+        <!-- Car moving left (tail lights) -->
+        <g class="car-l">
+          <rect x="0" y="169" width="18" height="6" rx="2" fill="#0a1525"/>
+          <circle cx="3"  cy="172" r="2" fill="#ff3d00" opacity="0.9"/>
+          <circle cx="15" cy="172" r="2" fill="#ff3d00" opacity="0.9"/>
+        </g>
+
+        <!-- Road reflection glow -->
+        <rect x="380" y="158" width="40" height="22" fill="#00C853" opacity="0.04"/>
+        <rect x="327" y="158" width="70" height="22" fill="#1E90FF" opacity="0.05"/>
+      </svg>
+    </div>
+    """, unsafe_allow_html=True)
     # ─────────────────────────────────────────────────────────────────────────
 
     st.markdown("---")
@@ -795,6 +946,7 @@ def show_landing_page():
             st.session_state.current_segment = "fuel"
             st.rerun()
 
+
 def show_electricity_segment():
     show_electricity_sidebar()
 
@@ -807,6 +959,7 @@ def show_electricity_segment():
         show_pdb_dashboard(db)
     else:
         show_electricity_public(db)
+
 
 def show_fuel_segment():
     show_fuel_sidebar()
@@ -826,13 +979,7 @@ def show_fuel_segment():
 
 
 def show_public_fuel_view():
-    """What the public sees in the fuel segment — no login."""
     st.markdown("## ⛽ Fuel Services")
-    show_lottie(
-        "https://assets4.lottiefiles.com/packages/lf20_CXxysR.json",
-        height=150,
-        fallback="⛽"
-    )
 
     announcements = db.get_active_announcements()
     for ann in announcements:
@@ -972,16 +1119,12 @@ def show_station_admin_view():
 
     with tabs[0]:
         show_station_dashboard(db, station_id)
-
     with tabs[1]:
         show_verify_token(db, station_id)
-
     with tabs[2]:
         show_station_analytics(db, station_id)
-
     with tabs[3]:
         show_pump_management(db, station_id)
-
     with tabs[4]:
         show_inventory_management(db, station_id)
 
@@ -1061,6 +1204,7 @@ def show_govt_segment():
 
     elif govt_view == "electricity":
         show_govt_control_panel(db, section="electricity")
+
 
 def show_force_password_change():
     st.markdown("## 🔐 Password Change Required")
