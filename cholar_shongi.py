@@ -90,7 +90,7 @@ CHOLAR SHONGI — OFFICIAL USER MANUAL
 Version 1.0 | Bangladesh Fuel & Power Management
 
 SECTION 1: GETTING STARTED
-Cholar Shongi (চলার সঙ্গী) is Bangladesh's smart guide to fuel booking
+Cholar Shongi is Bangladesh's smart guide to fuel booking
 and electricity schedule management. The app has two main segments:
   Electricity: Check power cut schedules for your area.
   Fuel: Book fuel appointments at stations.
