@@ -8,6 +8,14 @@ except AttributeError:
 
 import streamlit as st
 import sys
+from io import BytesIO
+
+from reportlab.platypus import (
+    SimpleDocTemplate,
+    Paragraph,
+    Spacer
+)
+from reportlab.lib.styles import getSampleStyleSheet
 
 
 st.set_page_config(
@@ -91,7 +99,7 @@ CHOLAR SHONGI — OFFICIAL USER MANUAL
 Version 1.0 | Bangladesh Fuel & Power Management
 
 SECTION 1: GETTING STARTED
-Cholar Shongi (চলার সঙ্গী) is Bangladesh's smart guide to fuel booking
+Cholar Shongi is Bangladesh's smart guide to fuel booking
 and electricity schedule management. The app has two main segments:
   Electricity: Check power cut schedules for your area.
   Fuel: Book fuel appointments at stations.
@@ -255,123 +263,152 @@ Vehicle not in emergency registry: Contact district authority.
 def inject_css():
     st.markdown("""
     <style>
-    /* Card styling */
+
+    .stApp {
+        background:
+            radial-gradient(circle at top left,
+                rgba(0,255,255,0.08),
+                transparent 30%),
+            radial-gradient(circle at top right,
+                rgba(255,0,255,0.08),
+                transparent 30%),
+            linear-gradient(
+                135deg,
+                #050816,
+                #08152E,
+                #050816
+            );
+    }
+
     .segment-card {
-        background: #132039;
+        background: rgba(19,32,57,0.85);
+        backdrop-filter: blur(10px);
         border-radius: 16px;
         padding: 32px;
         text-align: center;
-        border: 1px solid #1E90FF22;
-        transition: border-color 0.3s;
+        border: 1px solid rgba(0,255,255,0.25);
+        transition: all 0.3s ease;
         cursor: pointer;
     }
+
     .segment-card:hover {
-        border-color: #1E90FF;
+        border-color: #00FFFF;
+        box-shadow:
+            0 0 15px rgba(0,255,255,0.4),
+            0 0 30px rgba(255,0,255,0.2);
+        transform: translateY(-4px);
     }
-    /* Hero section */
+
     .hero-title {
-        font-size: 3rem;
-        font-weight: 800;
-        background: linear-gradient(135deg, #1E90FF, #00C853);
+        font-size: 3.5rem;
+        font-weight: 900;
+        text-align: center;
+        background: linear-gradient(
+            90deg,
+            #00FFFF,
+            #00BFFF,
+            #FF00FF,
+            #00FFFF
+        );
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
-        text-align: center;
+        text-shadow:
+            0 0 10px rgba(0,255,255,0.7),
+            0 0 20px rgba(255,0,255,0.4);
         margin-bottom: 0.5rem;
     }
+
     .hero-subtitle {
         font-size: 1.2rem;
-        color: #B0BEC5;
+        color: #D0D6FF;
         text-align: center;
         margin-bottom: 1rem;
     }
-    /* Status badges */
+
     .badge-active {
-        background: #FF3D0022;
-        color: #FF3D00;
-        padding: 2px 10px;
+        background: rgba(255,61,0,0.15);
+        color: #FF6B4A;
+        padding: 4px 10px;
         border-radius: 20px;
-        font-size: 0.8rem;
-        border: 1px solid #FF3D00;
+        border: 1px solid #FF6B4A;
     }
+
     .badge-upcoming {
-        background: #FFB30022;
-        color: #FFB300;
-        padding: 2px 10px;
+        background: rgba(255,179,0,0.15);
+        color: #FFD54F;
+        padding: 4px 10px;
         border-radius: 20px;
-        font-size: 0.8rem;
-        border: 1px solid #FFB300;
+        border: 1px solid #FFD54F;
     }
+
     .badge-expired {
-        background: #00C85322;
-        color: #00C853;
-        padding: 2px 10px;
+        background: rgba(0,200,83,0.15);
+        color: #00E676;
+        padding: 4px 10px;
         border-radius: 20px;
-        font-size: 0.8rem;
-        border: 1px solid #00C853;
+        border: 1px solid #00E676;
     }
-    /* Token display */
+
     .token-box {
-        background: #132039;
-        border: 2px solid #1E90FF;
+        background: rgba(19,32,57,0.9);
+        border: 2px solid #00FFFF;
         border-radius: 12px;
         padding: 24px;
         text-align: center;
-        margin: 16px 0;
+        box-shadow: 0 0 15px rgba(0,255,255,0.35);
     }
+
     .token-text {
         font-size: 2.5rem;
         font-weight: 900;
-        color: #1E90FF;
+        color: #00FFFF;
         letter-spacing: 6px;
         font-family: monospace;
+        text-shadow: 0 0 10px rgba(0,255,255,0.8);
     }
-    /* Alert boxes */
+
     .alert-critical {
-        background: #FF3D0015;
+        background: rgba(255,61,0,0.12);
         border-left: 4px solid #FF3D00;
         padding: 12px 16px;
         border-radius: 8px;
         margin: 8px 0;
     }
+
     .alert-warning {
-        background: #FFB30015;
+        background: rgba(255,179,0,0.12);
         border-left: 4px solid #FFB300;
         padding: 12px 16px;
         border-radius: 8px;
         margin: 8px 0;
     }
+
     .alert-info {
-        background: #1E90FF15;
-        border-left: 4px solid #1E90FF;
+        background: rgba(0,255,255,0.08);
+        border-left: 4px solid #00FFFF;
         padding: 12px 16px;
         border-radius: 8px;
         margin: 8px 0;
+        box-shadow: 0 0 10px rgba(0,255,255,0.15);
     }
-    /* Fuel gauge bars */
-    .fuel-gauge-bg {
-        background: #0A1628;
-        border-radius: 8px;
-        height: 12px;
-        width: 100%;
-        overflow: hidden;
-    }
-    /* Receipt */
+
     .receipt-box {
-        background: #132039;
-        border: 1px solid #1E90FF44;
+        background: rgba(19,32,57,0.85);
+        border: 1px solid rgba(0,255,255,0.3);
         border-radius: 12px;
         padding: 24px;
         font-family: monospace;
-        max-width: 400px;
+        max-width: 450px;
         margin: 0 auto;
+        box-shadow: 0 0 15px rgba(0,255,255,0.15);
     }
-    /* Hide streamlit branding */
+
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     header {visibility: hidden;}
+
     </style>
     """, unsafe_allow_html=True)
-
 inject_css()
 
 def load_lottie(url):
@@ -398,15 +435,35 @@ def show_lottie(url, height=200, fallback="⚡"):
         unsafe_allow_html=True
     )
 
+def generate_manual_pdf():
+    buffer = BytesIO()
+
+    doc = SimpleDocTemplate(buffer)
+
+    styles = getSampleStyleSheet()
+
+    story = []
+
+    for line in CHOLAR_SHONGI_MANUAL.split("\n"):
+        if line.strip():
+            story.append(Paragraph(line, styles["BodyText"]))
+            story.append(Spacer(1, 4))
+
+    doc.build(story)
+
+    buffer.seek(0)
+
+    return buffer.getvalue()
+    
 def show_landing_sidebar():
     with st.sidebar:
         st.markdown("### চলার সঙ্গী")
         st.markdown("---")
         st.download_button(
-            label="📥 Download User Manual",
-            data=CHOLAR_SHONGI_MANUAL.encode("utf-8"),
-            file_name="Cholar_Shongi_User_Manual.txt",
-            mime="text/plain; charset=utf-8",
+            label="📥 Download User Manual (PDF)",
+            data=generate_manual_pdf(),
+            file_name="Cholar_Shongi_User_Manual.pdf",
+            mime="application/pdf",
             use_container_width=True
         )
 
@@ -601,9 +658,9 @@ def show_landing_page():
     )
 
     show_lottie(
-        "https://assets4.lottiefiles.com/packages/lf20_touohxv0.json",
-        height=180,
-        fallback="🏙️"
+        "https://assets10.lottiefiles.com/packages/lf20_kkflmtur.json",
+        height=320,
+        fallback="🌃"
     )
 
     st.markdown("---")
