@@ -715,7 +715,7 @@ def show_landing_page():
         unsafe_allow_html=True
     )
     st.markdown(
-        '<div class="hero-subtitle">Cholar Shongi — Your smart guide to energy and fuel in Bangladesh</div>',
+        '<div class="hero-subtitle">Cholar Shongi - Your smart guide to energy and fuel in Bangladesh</div>',
         unsafe_allow_html=True
     )
     st.markdown(
@@ -726,7 +726,7 @@ def show_landing_page():
 
     show_lottie(
         "https://lottie.host/7af41266-1102-4860-ac3c-a43746c86d84/voY5yX51KQ.json",
-        height=320,
+        height=380,
         fallback="🌃"
     )
 
