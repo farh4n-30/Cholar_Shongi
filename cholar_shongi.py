@@ -79,6 +79,8 @@ def init_session_state():
         "show_full_grid": False,
         "confirm_station_close": False,
         "show_lift": None,
+        "reg_otp_sent": False,
+        "reg_pending":  {},
         "emr_verified": None
     }
     for key, value in defaults.items():
@@ -586,39 +588,104 @@ def show_fuel_sidebar():
                                 st.error(result["message"])
 
                 with tab_reg:
-                    with st.form("register_form"):
-                        reg_name = st.text_input("Full Name", key="reg_name")
-                        reg_email = st.text_input("Email", key="reg_email")
-                        reg_dl = st.text_input(
-                            "Driver's License",
-                            placeholder="DL-DHK-2341-2021",
-                            key="reg_dl"
-                        )
-                        reg_pass = st.text_input(
-                            "Password", type="password", key="reg_pass"
-                        )
-                        reg_pass2 = st.text_input(
-                            "Confirm Password", type="password",
-                            key="reg_pass2"
-                        )
-                        reg_submitted = st.form_submit_button(
-                            "Register", use_container_width=True
-                        )
-                        if reg_submitted:
-                            result = register_user(
-                                db, reg_name, reg_email,
-                                reg_dl, reg_pass, reg_pass2
+                    if not st.session_state.reg_otp_sent:
+                        with st.form("register_form"):
+                            reg_name = st.text_input("Full Name", key="reg_name")
+                            reg_email = st.text_input("Email", key="reg_email")
+                            reg_dl = st.text_input(
+                                "Driver's License",
+                                placeholder="DL-DHK-2341-2021",
+                                key="reg_dl"
                             )
-                            if result["success"]:
-                                for k, v in result.items():
-                                    if k != "success":
-                                        st.session_state[k] = v
-                                st.session_state.logged_in = True
-                                st.success("Registration successful!")
+                            reg_pass = st.text_input(
+                                "Password", type="password", key="reg_pass"
+                            )
+                            reg_pass2 = st.text_input(
+                                "Confirm Password", type="password",
+                                key="reg_pass2"
+                            )
+                            reg_submitted = st.form_submit_button(
+                                "Send Verification Code", use_container_width=True, type="primary"
+                            )
+                            if reg_submitted:
+                                if not reg_name or not reg_email or not reg_dl or not reg_pass or not reg_pass2:
+                                    st.error("Please fill in all fields.")
+                                elif reg_pass != reg_pass2:
+                                    st.error("Passwords do not match.")
+                                else:
+                                    valid_dl, cleaned_dl = utils.validate_driver_license(reg_dl)
+                                    if not valid_dl:
+                                        st.error(cleaned_dl)
+                                    elif db.get_user_by_email(reg_email):
+                                        st.error("An account with this email already exists.")
+                                    elif db.get_user_by_dl(cleaned_dl):
+                                        st.error("An account with this driver's license already exists.")
+                                    else:
+                                        from utils import generate_otp, get_otp_expiry
+                                        from email_service import send_otp_email
+                                        
+                                        otp = generate_otp()
+                                        st.session_state.reg_pending = {
+                                            "full_name": reg_name,
+                                            "email":     reg_email,
+                                            "dl":        cleaned_dl,
+                                            "password":  reg_pass,
+                                            "otp":       otp,
+                                            "expires":   get_otp_expiry(10),
+                                        }
+                                        send_otp_email(reg_email, reg_name, otp)
+                                        st.session_state.reg_otp_sent = True
+                                        st.rerun()
+                    else:
+                        pending = st.session_state.get("reg_pending", {})
+                        st.info(f"A 6-digit verification code has been sent to **{pending.get('email', '')}**.")
+                        
+                        with st.form("otp_verification_form"):
+                            otp_input = st.text_input("Enter 6-Digit Code", max_chars=6, placeholder="123456")
+                            col1, col2 = st.columns(2)
+                            with col1:
+                                verify = st.form_submit_button("Verify & Create", use_container_width=True, type="primary")
+                            with col2:
+                                resend = st.form_submit_button("Resend Code", use_container_width=True)
+                                
+                            if verify:
+                                from utils import is_otp_expired
+                                if is_otp_expired(pending.get("expires", "")):
+                                    st.error("Your verification code has expired. Please try registering again.")
+                                    st.session_state.reg_otp_sent = False
+                                    st.session_state.reg_pending = {}
+                                    st.rerun()
+                                elif otp_input.strip() != pending.get("otp", ""):
+                                    st.error("Incorrect verification code. Please try again.")
+                                else:
+                                    # Form valid, execute original database registration
+                                    result = register_user(
+                                        db, pending["full_name"], pending["email"],
+                                        pending["dl"], pending["password"], pending["password"]
+                                    )
+                                    if result["success"]:
+                                        for k, v in result.items():
+                                            if k != "success":
+                                                st.session_state[k] = v
+                                        st.session_state.logged_in = True
+                                        st.session_state.reg_otp_sent = False
+                                        st.session_state.reg_pending = {}
+                                        st.success("Registration successful!")
+                                        st.rerun()
+                                    else:
+                                        st.error(result["message"])
+                                        
+                            if resend:
+                                from utils import generate_otp, get_otp_expiry
+                                from email_service import send_otp_email
+                                
+                                new_otp = generate_otp()
+                                st.session_state.reg_pending["otp"] = new_otp
+                                st.session_state.reg_pending["expires"] = get_otp_expiry(10)
+                                send_otp_email(pending["email"], pending["full_name"], new_otp)
+                                st.success("A new verification code has been sent.")
                                 st.rerun()
-                            else:
-                                st.error(result["message"])
-
+                                
             with st.expander("🏪 Station Admin Login"):
                 with st.form("station_login_form"):
                     stn_email = st.text_input("Email", key="stn_email")
