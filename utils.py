@@ -805,3 +805,20 @@ def is_otp_expired(expiry_str: str) -> bool:
         )
     except Exception:
         return True
+
+def render_announcement_message(message: str) -> str:
+    import re
+    if "http" in message:
+        url_pattern = r'(https?://[^\s]+)'
+        parts = re.split(url_pattern, message)
+        rendered = ""
+        for part in parts:
+            if re.match(url_pattern, part):
+                rendered += (
+                    f'<a href="{part}" target="_blank" '
+                    f'style="color:#1E90FF; text-decoration: underline;">{part}</a>'
+                )
+            else:
+                rendered += part
+        return rendered
+    return message
