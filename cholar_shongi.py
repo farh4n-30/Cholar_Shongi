@@ -734,8 +734,9 @@ def show_landing_page():
     announcements = db.get_active_announcements()
     if announcements:
         for ann in announcements:
+            rendered_msg = utils.render_announcement_message(ann["message"])
             st.markdown(
-                f'<div class="alert-info">📢 <strong>{ann["title"]}</strong>: {ann["message"]}</div>',
+                f'<div class="alert-info">📢 <strong>{ann["title"]}</strong>: {rendered_msg}</div>',
                 unsafe_allow_html=True
             )
         st.markdown("")
@@ -809,8 +810,9 @@ def show_public_fuel_view():
 
     announcements = db.get_active_announcements()
     for ann in announcements:
+        rendered_msg = utils.render_announcement_message(ann["message"])
         st.markdown(
-            f'<div class="alert-info">📢 <strong>{ann["title"]}</strong>: {ann["message"]}</div>',
+            f'<div class="alert-info">📢 <strong>{ann["title"]}</strong>: {rendered_msg}</div>',
             unsafe_allow_html=True
         )
 
