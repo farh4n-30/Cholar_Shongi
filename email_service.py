@@ -708,3 +708,18 @@ and change it immediately.
 — Cholar Shongi
 """
     return send_email(to_email, subject, body.strip())
+
+def send_otp_email(email, full_name, otp):
+    subject = "Your Cholar Shongi Verification Code"
+    body    = f"""Dear {full_name},
+
+Your one-time verification code is:
+
+{otp}
+
+This code expires in 10 minutes. Do not share it with anyone.
+
+If you did not request this, please ignore this email.
+
+Cholar Shongi Team"""
+    send_email(email, subject, body)
