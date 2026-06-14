@@ -785,3 +785,23 @@ def format_walkin_denial_reason(reason: str) -> str:
     if reason in WALKIN_DENIAL_REASONS:
         return reason
     return "Station unable to accommodate request."
+
+import secrets
+
+def generate_otp() -> str:
+    return str(secrets.randbelow(900000) + 100000)
+
+def get_otp_expiry(minutes: int = 10) -> str:
+    from datetime import datetime, timedelta
+    return (datetime.now() + timedelta(minutes=minutes)).strftime(
+        "%Y-%m-%d %H:%M:%S"
+    )
+
+def is_otp_expired(expiry_str: str) -> bool:
+    from datetime import datetime
+    try:
+        return datetime.now() > datetime.strptime(
+            expiry_str, "%Y-%m-%d %H:%M:%S"
+        )
+    except Exception:
+        return True
