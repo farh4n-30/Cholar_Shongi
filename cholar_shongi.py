@@ -726,7 +726,7 @@ def show_landing_page():
 
     show_lottie(
         "https://lottie.host/7af41266-1102-4860-ac3c-a43746c86d84/voY5yX51KQ.json",
-        height=380,
+        height=320,
         fallback="🌃"
     )
 
