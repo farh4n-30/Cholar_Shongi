@@ -168,13 +168,34 @@ def show_electricity_public(db):
         unsafe_allow_html=True
     )
 
+
     for ann in db.get_active_announcements():
+        message = ann["message"]
+        has_link = "http" in message
+
+        if has_link:
+            import re
+            url_pattern = r'(https?://[^\s]+)'
+            parts       = re.split(url_pattern, message)
+            rendered    = ""
+            for part in parts:
+                if re.match(url_pattern, part):
+                    rendered += (
+                        f'<a href="{part}" target="_blank" '
+                        f'style="color:#1E90FF">{part}</a>'
+                    )
+                else:
+                    rendered += part
+        else:
+            rendered = message
+
         st.markdown(
             f'<div style="background:#1E90FF15;border-left:4px solid #1E90FF;'
             f'padding:10px 16px;border-radius:8px;margin:8px 0">'
-            f'📢 <strong>{ann["title"]}</strong>: {ann["message"]}</div>',
+            f'📢 <strong>{ann["title"]}</strong>: {rendered}</div>',
             unsafe_allow_html=True
         )
+
 
     st.markdown("---")
 
