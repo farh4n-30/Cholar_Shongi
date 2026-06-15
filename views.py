@@ -1977,7 +1977,7 @@ def show_station_dashboard(db, station_id: int):
 
 
 @require_role("station_admin")
-def show_verify_token(db):
+def show_verify_token(db, station_id= None):
     st.markdown("### 🔍 Verify & Service Token")
     
     # Simple form to look up a token
