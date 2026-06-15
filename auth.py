@@ -190,14 +190,13 @@ def logout_user():
 def require_role(*allowed_roles):
     def decorator(func):
         def wrapper(*args, **kwargs):
-            current_role = st.session_state.get("role")
-            if current_role not in allowed_roles:
-                st.error("🚫 Access denied. You do not have permission to view this page.")
+            if not st.session_state.get("logged_in"):
+                st.error("Please login to access this section.")
+                st.stop()
+            if st.session_state.get("role") not in allowed_roles:
+                st.error("🔒 Unauthorized access.")
                 st.stop()
             return func(*args, **kwargs)
-
-        wrapper.__name__ = func.__name__
-        wrapper.__doc__  = func.__doc__
         return wrapper
     return decorator
 
