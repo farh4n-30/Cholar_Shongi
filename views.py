@@ -2044,10 +2044,9 @@ def show_station_dashboard(db, station_id: int):
 
 
 @require_role("station_admin")
-def show_verify_token(db, station_id= None):
+def show_verify_token(db, station_id=None):
     st.markdown("### 🔍 Verify & Service Token")
     
-    # Simple form to look up a token
     with st.form("token_lookup_form"):
         token_input = st.text_input("Enter 6-Digit Token", placeholder="e.g., ABC123").strip().upper()
         lookup_submitted = st.form_submit_button("Search Booking", use_container_width=True)
@@ -2057,14 +2056,26 @@ def show_verify_token(db, station_id= None):
         return
 
     if token_input:
-        # Retrieve the booking status from the database
-        booking = db.get_booking_by_token(token_input)
+        res = db.get_booking_by_token(token_input)
         
-        if not booking:
+        if not res:
             st.error("❌ Invalid token. No active booking found with this code.")
             return
-            
-        # Check if the booking is already serviced or canceled
+
+        # Explicit safety parser converting sequence tuples to key-value dict object mappings
+        if isinstance(res, dict):
+            booking = res
+        elif hasattr(res, "keys"):
+            booking = dict(res)
+        else:
+            keys = [
+                "id", "token", "user_id", "station_id", "booking_type", 
+                "vehicle_type", "fuel_type", "license_plate", "driver_license", 
+                "driver_name", "driver_email", "requested_amount", "price_per_litre", 
+                "slot_datetime", "purpose", "status", "created_at"
+            ]
+            booking = dict(zip(keys, res))
+        
         if booking["status"] == "serviced":
             st.info(f"ℹ️ Token **{token_input}** has already been completed and serviced.")
             return
@@ -2072,7 +2083,6 @@ def show_verify_token(db, station_id= None):
             st.warning(f"⚠️ Token **{token_input}** was canceled by the user.")
             return
 
-        # Display booking overview card before servicing
         is_emergency = (booking["booking_type"] == "emergency")
         st.markdown(
             f'<div style="background:#0D1F3D; border: 1px solid #1E3A8A; border-radius:12px; padding:20px; margin-bottom:20px">'
@@ -2086,7 +2096,6 @@ def show_verify_token(db, station_id= None):
             unsafe_allow_html=True
         )
 
-        # Servicing Execution Form
         with st.form("service_execution_form"):
             st.markdown("### Confirm Dispensed Fuel")
             dispensed_amount = st.number_input(
@@ -2099,7 +2108,6 @@ def show_verify_token(db, station_id= None):
             service_confirmed = st.form_submit_button("✅ Complete Service & Dispense Fuel", type="primary", use_container_width=True)
             
             if service_confirmed:
-                # Update the row status in the database
                 if is_emergency:
                     success = db.service_emergency(booking["id"])
                 else:
@@ -2107,15 +2115,11 @@ def show_verify_token(db, station_id= None):
                     
                 if success:
                     st.success("🎉 Booking successfully completed and database updated!")
-                    # Clear out the temporary lookup field from memory
                     if "token_input" in st.session_state:
                         st.session_state.token_input = ""
-                    
-                    # FIX: Force Streamlit to immediately update the layout and clear the token cache
                     st.rerun()
                 else:
                     st.error("❌ Database update failed. Please verify pump inventories and try again.")
-
 
 @require_role("station_admin")
 def show_station_analytics(db, station_id: int):
