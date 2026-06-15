@@ -2069,17 +2069,19 @@ def show_verify_token(db, station_id=None):
             booking = dict(res)
         else:
             keys = [
-                "id", "token", "user_id", "station_id", "booking_type", 
-                "vehicle_type", "fuel_type", "license_plate", "driver_license", 
-                "driver_name", "driver_email", "requested_amount", "price_per_litre", 
-                "slot_datetime", "purpose", "status", "created_at"
+                "id", "token", "user_id", "station_id", "booking_type",
+                "vehicle_type", "fuel_type", "license_plate", "driver_license",
+                "full_name", "email", "requested_amount", "actual_dispensed",
+                "price_per_litre", "estimated_cost", "actual_cost",
+                "booking_purpose", "status", "slot_datetime", "serviced_at",
+                "postpone_count", "month_year", "pending_postpone", "created_at"
             ]
             booking = dict(zip(keys, res))
         
         if booking["status"] == "serviced":
             st.info(f"ℹ️ Token **{token_input}** has already been completed and serviced.")
             return
-        elif booking["status"] == "canceled":
+        elif booking["status"] == "cancelled":
             st.warning(f"⚠️ Token **{token_input}** was canceled by the user.")
             return
 
@@ -2087,7 +2089,7 @@ def show_verify_token(db, station_id=None):
         st.markdown(
             f'<div style="background:#0D1F3D; border: 1px solid #1E3A8A; border-radius:12px; padding:20px; margin-bottom:20px">'
             f'<h4>📋 Booking Details {"(🚨 EMERGENCY)" if is_emergency else ""}</h4>'
-            f'<b>Driver Name:</b> {booking["driver_name"]}<br>'
+            f'<b>Driver Name:</b> {booking["full_name"]}<br>'
             f'<b>Vehicle No:</b> {booking["license_plate"]}<br>'
             f'<b>Fuel Type:</b> {booking["fuel_type"]}<br>'
             f'<b>Requested Quantity:</b> {booking["requested_amount"]} Liters<br>'
@@ -2099,19 +2101,20 @@ def show_verify_token(db, station_id=None):
         with st.form("service_execution_form"):
             st.markdown("### Confirm Dispensed Fuel")
             dispensed_amount = st.number_input(
-                "Actual Amount Dispensed (Liters)", 
-                min_value=1, 
-                max_value=int(booking["requested_amount"] * 1.2), 
-                value=int(booking["requested_amount"])
+                "Actual Amount Dispensed (Liters)",
+                min_value=1.0,
+                max_value=float(booking["requested_amount"]) * 1.2,
+                value=float(booking["requested_amount"]),
+                step=0.5
             )
             
             service_confirmed = st.form_submit_button("✅ Complete Service & Dispense Fuel", type="primary", use_container_width=True)
             
             if service_confirmed:
                 if is_emergency:
-                    success = db.service_emergency(booking["id"])
+                    success = db.service_emergency(booking["token"], dispensed_amount)
                 else:
-                    success = db.mark_serviced(booking["id"])
+                    success = db.mark_serviced(booking["token"], dispensed_amount)
                     
                 if success:
                     st.success("🎉 Booking successfully completed and database updated!")
@@ -2120,7 +2123,6 @@ def show_verify_token(db, station_id=None):
                     st.rerun()
                 else:
                     st.error("❌ Database update failed. Please verify pump inventories and try again.")
-
 @require_role("station_admin")
 def show_station_analytics(db, station_id: int):
     st.markdown("## 📊 Station Analytics")
