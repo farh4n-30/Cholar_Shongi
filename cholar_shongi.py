@@ -81,6 +81,7 @@ def init_session_state():
         "show_lift": None,
         "reg_otp_sent": False,
         "reg_pending":  {},
+        "emr_token_data": None,
         "emr_verified": None
     }
     for key, value in defaults.items():
