@@ -1980,172 +1980,77 @@ def show_station_dashboard(db, station_id: int):
 
 
 @require_role("station_admin")
-def show_verify_token(db, station_id: int):
-    st.markdown("## 🔍 Verify Token")
+def show_verify_token(db):
+    st.markdown("### 🔍 Verify & Service Token")
+    
+    # Simple form to look up a token
+    with st.form("token_lookup_form"):
+        token_input = st.text_input("Enter 6-Digit Token", placeholder="e.g., ABC123").strip().upper()
+        lookup_submitted = st.form_submit_button("Search Booking", use_container_width=True)
+        
+    if lookup_submitted and not token_input:
+        st.error("Please enter a valid token to search.")
+        return
 
-    token_input = st.text_input(
-        "Enter Token",
-        placeholder="A3F9KX2B or EX-B7K2MN9P",
-        max_chars=15
-    ).strip().upper()
-
-    if st.button("🔍 Verify", use_container_width=True) and token_input:
-
-        is_emergency = token_input.startswith("EX-")
-
-        if is_emergency:
-            _raw = db.get_emergency_by_token(token_input)
-        else:
-            _raw = db.get_booking_by_token(token_input)
-
-        booking = dict(_raw) if _raw else None
-
+    if token_input:
+        # Retrieve the booking status from the database
+        booking = db.get_booking_by_token(token_input)
+        
         if not booking:
-            st.error("Token not found. Please check and try again.")
+            st.error("❌ Invalid token. No active booking found with this code.")
+            return
+            
+        # Check if the booking is already serviced or canceled
+        if booking["status"] == "serviced":
+            st.info(f"ℹ️ Token **{token_input}** has already been completed and serviced.")
+            return
+        elif booking["status"] == "canceled":
+            st.warning(f"⚠️ Token **{token_input}** was canceled by the user.")
             return
 
-        if not is_emergency:
-            if booking["station_id"] != station_id:
-                st.error("This token is not valid for your station.")
-                return
-            if booking["status"] == "serviced":
-                st.warning("This booking has already been serviced.")
-                return
-            if booking["status"] in ("cancelled", "denied", "no_show"):
-                st.warning(
-                    f"This token has status: "
-                    f"{STATUS_LABELS.get(booking['status'], booking['status'])}"
-                )
-                return
-
-        if is_emergency:
-            st.markdown(
-                '<div style="background:#FF3D0015;border:2px solid #FF3D00;'
-                'border-radius:12px;padding:16px;margin:8px 0">'
-                '<strong>🚨 EMERGENCY SERVICE</strong></div>',
-                unsafe_allow_html=True
-            )
-            details = {
-                "Registration": booking["registration_number"],
-                "Organisation": booking["organisation"],
-                "Category":     booking["vehicle_category"].title(),
-                "Fuel":         booking["fuel_type"],
-                "Requested":    f'{int(booking["requested_amount"])}L',
-                "ETA":          format_time_only(booking["eta_datetime"]),
-                "Status":       booking["status"].title(),
-            }
-        else:
-            late    = is_slot_late(booking["slot_datetime"])
-            details = {
-                "Name":      booking["full_name"],
-                "DL":        booking["driver_license"],
-                "Vehicle":   booking["vehicle_type"],
-                "Fuel":      booking["fuel_type"],
-                "Requested": f'{int(booking["requested_amount"])}L',
-                "Time":      format_time_only(booking["slot_datetime"]),
-                "Status":    (
-                    "⏰ Late (same day — token still valid)" if late
-                    else STATUS_LABELS.get(
-                        booking["status"], booking["status"]
-                    )
-                ),
-                "Plate":     booking["license_plate"],
-            }
-
+        # Display booking overview card before servicing
+        is_emergency = (booking["booking_type"] == "emergency")
         st.markdown(
-            '<div style="background:#132039;border:1px solid #1E90FF44;'
-            'border-radius:12px;padding:16px;line-height:2">',
+            f'<div style="background:#0D1F3D; border: 1px solid #1E3A8A; border-radius:12px; padding:20px; margin-bottom:20px">'
+            f'<h4>📋 Booking Details {"(🚨 EMERGENCY)" if is_emergency else ""}</h4>'
+            f'<b>Driver Name:</b> {booking["driver_name"]}<br>'
+            f'<b>Vehicle No:</b> {booking["license_plate"]}<br>'
+            f'<b>Fuel Type:</b> {booking["fuel_type"]}<br>'
+            f'<b>Requested Quantity:</b> {booking["requested_amount"]} Liters<br>'
+            f'<b>Status:</b> <span style="color:#FFA500">{booking["status"].upper()}</span>'
+            f'</div>',
             unsafe_allow_html=True
         )
-        for k, v in details.items():
-            st.markdown(f'<strong>{k}:</strong> {v}<br>',
-                        unsafe_allow_html=True)
-        st.markdown("</div>", unsafe_allow_html=True)
 
-        if (
-            booking["status"] in ("scheduled", "approved", "pending_approval")
-            or (is_emergency and booking["status"] == "scheduled")
-        ):
-            st.markdown("---")
-            with st.form("service_form"):
-                max_val = float(booking["requested_amount"])
-                actual  = st.number_input(
-                    "Actual litres dispensed",
-                    min_value=0.1,
-                    max_value=max_val,
-                    value=max_val,
-                    step=0.1,
-                    format="%.1f"
-                )
-                service_btn = st.form_submit_button(
-                    "✅ Mark as Serviced",
-                    use_container_width=True,
-                    type="primary"
-                )
-
-                if service_btn:
-                    valid, validated_actual = validate_dispensed_amount(
-                        actual, booking["requested_amount"]
-                    )
-                    if not valid:
-                        st.error(validated_actual)
-                        st.stop()
-
-                    stn_obj = db.get_station_by_id(station_id)
-
-                    if is_emergency:
-                        result = db.service_emergency(
-                            token_input, validated_actual
-                        )
-                        db.log_audit(
-                            st.session_state.user_id,
-                            "Emergency service completed",
-                            f"Token {token_input} — "
-                            f"{validated_actual}L {booking['fuel_type']}",
-                            "fuel"
-                        )
-                    else:
-                        result = db.mark_serviced(
-                            token_input, validated_actual
-                        )
-                        db.log_audit(
-                            st.session_state.user_id,
-                            "Marked as Serviced",
-                            f"Token {token_input} — "
-                            f"{validated_actual}L {booking['fuel_type']}",
-                            "fuel"
-                        )
-
-                    if result:
-                        now_str = datetime.now().strftime(
-                            "%Y-%m-%d %H:%M:%S"
-                        )
-                        stn_name = stn_obj["name"] if stn_obj else "Station"
-                        receipt  = (
-                            generate_emergency_receipt_text(
-                                booking, stn_name,
-                                validated_actual, now_str
-                            )
-                            if is_emergency
-                            else generate_receipt_text(
-                                booking, stn_name,
-                                validated_actual, now_str
-                            )
-                        )
-                        st.success("✅ Booking marked as serviced.")
-                        st.code(receipt, language=None)
-                        send_service_receipt(
-                            booking.get(
-                                "email",
-                                booking.get("driver_license", "") + "@mock.com"
-                            ),
-                            booking.get(
-                                "full_name",
-                                booking.get("organisation", "")
-                            ),
-                            receipt
-                        )
-                        st.rerun()
+        # Servicing Execution Form
+        with st.form("service_execution_form"):
+            st.markdown("### Confirm Dispensed Fuel")
+            dispensed_amount = st.number_input(
+                "Actual Amount Dispensed (Liters)", 
+                min_value=1, 
+                max_value=int(booking["requested_amount"] * 1.2), 
+                value=int(booking["requested_amount"])
+            )
+            
+            service_confirmed = st.form_submit_button("✅ Complete Service & Dispense Fuel", type="primary", use_container_width=True)
+            
+            if service_confirmed:
+                # Update the row status in the database
+                if is_emergency:
+                    success = db.service_emergency(booking["id"])
+                else:
+                    success = db.mark_serviced(booking["id"])
+                    
+                if success:
+                    st.success("🎉 Booking successfully completed and database updated!")
+                    # Clear out the temporary lookup field from memory
+                    if "token_input" in st.session_state:
+                        st.session_state.token_input = ""
+                    
+                    # FIX: Force Streamlit to immediately update the layout and clear the token cache
+                    st.rerun()
+                else:
+                    st.error("❌ Database update failed. Please verify pump inventories and try again.")
 
 
 @require_role("station_admin")
