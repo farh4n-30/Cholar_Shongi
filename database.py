@@ -1256,7 +1256,14 @@ class DatabaseManager:
             JOIN stations s ON s.id = b.station_id
             WHERE b.driver_license=?
             AND b.status IN ('scheduled','pending_approval','approved')
-            ORDER BY b.created_at DESC LIMIT 1
+            ORDER BY
+                CASE b.status
+                    WHEN 'scheduled'        THEN 1
+                    WHEN 'approved'         THEN 2
+                    WHEN 'pending_approval' THEN 3
+                END ASC,
+                b.created_at DESC
+            LIMIT 1
         """, (dl,))
         return c.fetchone()
 
