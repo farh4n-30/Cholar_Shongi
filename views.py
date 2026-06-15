@@ -2062,7 +2062,7 @@ def show_verify_token(db, station_id=None):
             st.error("❌ Invalid token. No active booking found with this code.")
             return
 
-        # Explicit safety parser converting sequence tuples to key-value dict object mappings
+        # Safe structural conversion mapping to prevent tuple IndexError / KeyError anomalies
         if isinstance(res, dict):
             booking = res
         elif hasattr(res, "keys"):
