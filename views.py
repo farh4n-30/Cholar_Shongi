@@ -1118,13 +1118,39 @@ def show_emergency_services(db):
         'No login required.</p>',
         unsafe_allow_html=True
     )
+    
+    # Render token card outside the form block if data exists in state (Bug 5 Fix)
+    if st.session_state.get("emr_token_data"):
+        data = st.session_state.emr_token_data
+        token_card(
+            token=data["token"], 
+            station_name=data["station_name"],
+            station_address=data["station_address"], 
+            slot_datetime=data["eta_dt"],
+            fuel_type=data["fuel"], 
+            amount=data["amount"], 
+            estimated_cost=data["est"],
+            expires_label=data["exp_label"], 
+            is_emergency=True
+        )
+        st.markdown(
+            f'<div style="color:#B0BEC5;text-align:center;'
+            f'margin-top:8px">ETA: approximately '
+            f'{data["eta_label"]}</div>',
+            unsafe_allow_html=True
+        )
+        if st.button("🚨 Book Another Emergency"):
+            st.session_state.pop("emr_token_data", None)
+            st.session_state.pop("emr_verified", None)
+            st.rerun()
+        return
 
     reg = st.text_input(
-        "Enter Vehicle Registration Number",
-        placeholder="FIRE-CTG-001 or AMB-DHK-001",
+        "Enter Vehicle Registration Number", 
+        placeholder="FIRE-CTG-001 or AMB-DHK-001", 
         key="emr_reg"
     ).strip().upper()
-
+    
     if not reg:
         st.info("Enter your emergency vehicle registration to begin.")
         return
@@ -1134,23 +1160,19 @@ def show_emergency_services(db):
         if not valid:
             st.error(cleaned_reg)
             return
-
         vehicle = db.check_emergency_vehicle(cleaned_reg)
-
         if not vehicle:
             st.error(
                 "This vehicle registration is not in our emergency registry. "
                 "Please contact your district authority to register."
             )
             return
-
         if not vehicle["is_enabled"]:
             st.warning(
                 "Emergency service is currently unavailable "
                 "for this vehicle category."
             )
             return
-
         st.session_state["emr_verified"] = dict(vehicle)
         st.rerun()
 
@@ -1159,170 +1181,105 @@ def show_emergency_services(db):
         return
 
     cat_label = EMERGENCY_CATEGORY_LABELS.get(
-        verified["vehicle_category"],
-        verified["vehicle_category"].title()
+        verified["vehicle_category"], verified["vehicle_category"].title()
     )
-
     st.markdown(
         f'<div style="background:#FF3D0015;border:2px solid #FF3D00;'
         f'border-radius:12px;padding:16px;margin:8px 0">'
         f'<strong>✅ Vehicle Verified</strong><br>'
-        f'Registration: <strong>{verified["registration_number"]}</strong><br>'
-        f'Organisation: <strong>{verified["organisation"]}</strong><br>'
-        f'Category: <strong>{cat_label}</strong><br>'
-        f'Daily Limit Bypass: <strong>✅ Authorised</strong>'
+        f'<span style="color:#B0BEC5">Organisation:</span> {verified["organisation"]} | '
+        f'<span style="color:#B0BEC5">Category:</span> {cat_label}'
         f'</div>',
         unsafe_allow_html=True
     )
 
+    # Emergency Form Context
     with st.form("emergency_form"):
-        dl = st.text_input(
-            "Driver's License Number",
-            placeholder="DL-CTG-0042-2020"
-        )
-
+        st.markdown("### Emergency Priority Request")
+        
         col1, col2 = st.columns(2)
         with col1:
-            city = st.selectbox("City", get_cities(), key="emr_city")
+            city = st.selectbox("City", [""] + get_cities(), key="emr_city")
         with col2:
+            areas = get_areas(city) if city else []
+            # Dynamic key prevents the area lock trap when switching cities (Bug 3 Fix)
             area = st.selectbox(
                 "Area",
-                get_areas(city) if city else [],
-                key="emr_area"
+                [""] + areas if areas else [""],
+                key=f"emr_area_{city}"
             )
 
-        fuel = st.selectbox("Fuel Type Needed", FUEL_TYPES)
-
-        stations     = []
-        if city and area:
-            stations = db.get_stations_by_area(city, area)
-
-        station_data = []
-        for s in stations:
-            avail = db.get_available_fuel(s["id"], fuel)
-            if avail > 0:
-                station_data.append({
-                    "id":        s["id"],
-                    "name":      s["name"],
-                    "address":   s["address"],
-                    "available": avail,
-                })
-
-        if station_data:
-            st.markdown("**Available Stations:**")
-            for sd in station_data:
-                st.markdown(
-                    f'<div style="background:#132039;padding:8px 12px;'
-                    f'border-radius:6px;margin:4px 0;color:#B0BEC5">'
-                    f'<strong>{sd["name"]}</strong> — '
-                    f'{fuel} available: <strong>'
-                    f'{int(sd["available"])}L</strong>'
-                    f'</div>',
-                    unsafe_allow_html=True
-                )
-            station_options = {sd["name"]: sd for sd in station_data}
-            station_name    = st.selectbox(
-                "Select Station", list(station_options.keys())
-            )
-        else:
-            st.warning("No stations with available fuel in this area.")
-            station_options = {}
-            station_name    = None
-
-        col1, col2 = st.columns(2)
-        with col1:
-            amount = st.number_input(
-                "Fuel Amount Needed (litres)",
-                min_value=1, max_value=500,
-                value=100, step=1
-            )
-        with col2:
-            eta_min = st.selectbox(
-                "Estimated Arrival (minutes)", ETA_OPTIONS
-            )
-
-        submitted = st.form_submit_button(
-            "🚨 Request Emergency Service",
-            use_container_width=True,
-            type="primary"
+        stations = db.get_stations_by_area(city, area) if city and area else []
+        station_options = {s["name"]: s for s in stations}
+        
+        station_name = st.selectbox(
+            "Select Nearest Station", 
+            [""] + list(station_options.keys()) if station_options else [""]
         )
 
+        fuel = st.selectbox("Fuel Type Requested", FUEL_TYPES, key="emr_fuel")
+        amount = st.number_input("Fuel Amount (Litres)", min_value=1, max_value=200, value=50, step=5)
+        eta_minutes = st.selectbox("Estimated Arrival Time (ETA)", ETA_OPTIONS)
+
+        submitted = st.form_submit_button("🚨 Request Immediate Priority Token", use_container_width=True, type="primary")
+
         if submitted:
-            if not dl:
-                st.error("Please enter your driver's license number.")
-                st.stop()
-            valid, cleaned_dl = validate_driver_license(dl)
-            if not valid:
-                st.error(cleaned_dl)
+            if not city or not area or not station_name:
+                st.error("Please fill in all location and station criteria.")
                 st.stop()
 
-            if not station_name or station_name not in station_options:
-                st.error("Please select a station.")
-                st.stop()
+            sel_stn = station_options[station_name]
+            price = db.get_fuel_price(fuel)
+            est = calculate_cost(amount, price)
+            
+            eta_dt = get_eta_datetime(eta_minutes)
+            eta_label = f"{eta_minutes} minutes" if isinstance(eta_minutes, int) else str(eta_minutes)
+            exp_dt = datetime.strptime(eta_dt, "%Y-%m-%d %H:%M:%S") + timedelta(hours=2)
+            exp_label = exp_dt.strftime("%I:%M %p, %B %d")
 
-            sel_stn  = station_options[station_name]
-            price    = db.get_fuel_price(fuel)
-            avail    = db.get_available_fuel(sel_stn["id"], fuel)
+            token = generate_emergency_token(db)
+            cleaned_dl = f"EMR-{verified['registration_number']}"
 
-            if amount > avail:
-                st.error(
-                    f"Requested amount exceeds available stock. "
-                    f"Available: {int(avail)}L. "
-                    f"Please request less or choose another station."
-                )
-                st.stop()
-
-            valid, eta = validate_eta_minutes(eta_min)
-            if not valid:
-                st.error(eta)
-                st.stop()
-
-            eta_dt = get_eta_datetime(eta)
-            token  = generate_emergency_token(db)
-            est    = calculate_cost(amount, price)
-
-            db.create_emergency_booking(
-                token,
-                verified["registration_number"],
-                verified["vehicle_category"],
-                verified["organisation"],
-                sel_stn["id"],
-                cleaned_dl,
-                fuel, amount, price,
-                eta, eta_dt
+            db.create_booking(
+                token=token,
+                user_id=None,
+                station_id=sel_stn["id"],
+                booking_type="emergency",
+                vehicle_type=verified["vehicle_category"],
+                fuel_type=fuel,
+                license_plate=verified["registration_number"],
+                driver_license=cleaned_dl,
+                driver_name=verified["organisation"],
+                driver_email=cleaned_dl + "@mock.com",
+                requested_amount=amount,
+                price_per_litre=price,
+                slot_datetime=eta_dt,
+                purpose="Emergency Duty Dispatch"
             )
 
             db.log_audit(
-                1,
-                "Emergency service booked",
-                f"{verified['registration_number']} — "
-                f"{fuel} {int(amount)}L at {sel_stn['name']}",
-                "fuel"
+                user_id=None,
+                action="Created Emergency Booking",
+                details=f"Token: {token} for {verified['registration_number']} at {sel_stn['name']}",
+                log_type="fuel"
             )
 
-            try:
-                eta_dt_obj = datetime.strptime(eta_dt, "%Y-%m-%d %H:%M:%S")
-                eta_label  = eta_dt_obj.strftime("%I:%M %p")
-            except Exception:
-                eta_label  = eta_dt
-
-            exp_label = f"Midnight, {date.today().strftime('%B %d, %Y')}"
-
-            token_card(
-                token, sel_stn["name"], sel_stn["address"],
-                eta_dt, fuel, amount, est, exp_label,
-                is_emergency=True
-            )
-            st.markdown(
-                f'<div style="color:#B0BEC5;text-align:center;'
-                f'margin-top:8px">ETA: approximately {eta_label}</div>',
-                unsafe_allow_html=True
-            )
+            # Store payload to state to safely display the token card outside form framework
+            st.session_state.emr_token_data = {
+                "token": token,
+                "station_name": sel_stn["name"],
+                "station_address": sel_stn["address"],
+                "eta_dt": eta_dt,
+                "fuel": fuel,
+                "amount": amount,
+                "est": est,
+                "exp_label": exp_label,
+                "eta_label": eta_label,
+            }
 
             send_emergency_token(
                 cleaned_dl + "@mock.com",
-                cleaned_dl,
-                token,
+                cleaned_dl, token,
                 verified["registration_number"],
                 verified["organisation"],
                 sel_stn["name"], sel_stn["address"],
@@ -1330,6 +1287,7 @@ def show_emergency_services(db):
             )
 
             st.session_state.pop("emr_verified", None)
+            st.rerun()
 
 
 def show_find_my_booking(db, logged_in: bool = False):
