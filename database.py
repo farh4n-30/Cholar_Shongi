@@ -1349,12 +1349,15 @@ class DatabaseManager:
         est_cost = b["requested_amount"] * current_price
         c.execute("""
             UPDATE bookings
-            SET status='scheduled', slot_datetime=?,
-                price_per_litre=?, estimated_cost=?
+            SET status='approved',
+                slot_datetime=?,
+                price_per_litre=?,
+                estimated_cost=?
             WHERE id=?
         """, (now_str, current_price, est_cost, booking_id))
         self.conn.commit()
         return True
+
 
     def deny_walkin(self, booking_id, reason):
         c = self.conn.cursor()
