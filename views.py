@@ -1240,21 +1240,18 @@ def show_emergency_services(db):
             token = generate_emergency_token(db)
             cleaned_dl = f"EMR-{verified['registration_number']}"
 
-            db.create_booking(
-                token=token,
-                user_id=None,
-                station_id=sel_stn["id"],
-                booking_type="emergency",
-                vehicle_type=verified["vehicle_category"],
-                fuel_type=fuel,
-                license_plate=verified["registration_number"],
-                driver_license=cleaned_dl,
-                driver_name=verified["organisation"],
-                driver_email=cleaned_dl + "@mock.com",
-                requested_amount=amount,
-                price_per_litre=price,
-                slot_datetime=eta_dt,
-                purpose="Emergency Duty Dispatch"
+            db.create_emergency_booking(
+                token,
+                verified["registration_number"],
+                verified["vehicle_category"],
+                verified["organisation"],
+                sel_stn["id"],
+                cleaned_dl,
+                fuel, 
+                amount, 
+                price,
+                eta_min, 
+                eta_dt
             )
 
             db.log_audit(
