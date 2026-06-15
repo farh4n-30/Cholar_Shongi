@@ -1277,16 +1277,18 @@ class DatabaseManager:
             ORDER BY b.created_at DESC LIMIT ?
         """, (dl, limit))
         return c.fetchall()
-
+        
     def get_todays_bookings_for_station(self, station_id):
         c     = self.conn.cursor()
         today = date.today().strftime("%Y-%m-%d")
         c.execute("""
-            SELECT * FROM bookings
-            WHERE station_id=?
-            AND DATE(slot_datetime)=?
-            AND status IN ('scheduled','approved','pending_approval')
-            ORDER BY slot_datetime
+            SELECT b.*, u.full_name AS user_name
+            FROM bookings b
+            LEFT JOIN users u ON u.id = b.user_id
+            WHERE b.station_id=?
+            AND (DATE(b.slot_datetime)=? OR b.booking_type='emergency')
+            AND b.status IN ('scheduled','approved','pending_approval')
+            ORDER BY b.slot_datetime ASC
         """, (station_id, today))
         return c.fetchall()
 
