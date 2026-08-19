@@ -1,6 +1,6 @@
 # চলার সঙ্গী (Cholar Shongi)
 
-**Travel Companion** — A smart fuel booking and load shedding management system for Bangladesh.
+A smart fuel booking and load shedding management system for Bangladesh.
 
 Built with Python and Streamlit as a first-year university course project.
 
