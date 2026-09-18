@@ -388,16 +388,31 @@ def inject_css():
     .stButton > button {
         border-radius: 10px;
         font-weight: 600;
-        border: 1px solid #0B6B53;
-        background: #0B6B53;
-        color: #FFFFFF;
         min-height: 44px;
     }
 
-    .stButton > button:hover {
+    .stButton > button[kind="primary"] {
+        border: 1px solid #0B6B53;
+        background: #0B6B53;
+        color: #FFFFFF;
+    }
+
+    .stButton > button[kind="primary"]:hover {
         background: #095A46;
         border-color: #095A46;
         color: #FFFFFF;
+    }
+
+    .stButton > button[kind="secondary"] {
+        border: 1px solid #0B6B53;
+        background: #FFFFFF;
+        color: #0B6B53;
+    }
+
+    .stButton > button[kind="secondary"]:hover {
+        background: #F0F8F5;
+        border-color: #095A46;
+        color: #095A46;
     }
 
     [data-testid="stSidebar"] {
@@ -778,7 +793,7 @@ def show_landing_page():
             if os.path.exists(electricity_path):
                 st.image(
                     electricity_path,
-                    use_container_width=True
+                    use_column_width=True
                 )
             else:
                 st.error("Electricity artwork could not be loaded.")
@@ -800,7 +815,7 @@ def show_landing_page():
             if os.path.exists(fuel_path):
                 st.image(
                     fuel_path,
-                    use_container_width=True
+                    use_column_width=True
                 )
             else:
                 st.error("Fuel artwork could not be loaded.")
@@ -887,8 +902,8 @@ def show_public_fuel_view():
         st.markdown("""
         <div class="segment-card">
             <div style="font-size:40px">📅</div>
-            <h3 style="color:#1E90FF">Advance Booking</h3>
-            <p style="color:#B0BEC5;font-size:0.9rem">Book up to 3 days ahead. Requires login.</p>
+            <h3 style="color:#0B6B53">Advance Booking</h3>
+            <p style="color:#4A5D56;font-size:0.9rem">Book up to 3 days ahead. Requires login.</p>
         </div>
         """, unsafe_allow_html=True)
         if st.button("Advance Booking", key="pub_advance",
@@ -899,8 +914,8 @@ def show_public_fuel_view():
         st.markdown("""
         <div class="segment-card">
             <div style="font-size:40px">🚶</div>
-            <h3 style="color:#00C853">Walk-In Booking</h3>
-            <p style="color:#B0BEC5;font-size:0.9rem">Already at a station? Request service now. Requires login.</p>
+            <h3 style="color:#0B6B53">Walk-In Booking</h3>
+            <p style="color:#4A5D56;font-size:0.9rem">Already at a station? Request service now. Requires login.</p>
         </div>
         """, unsafe_allow_html=True)
         if st.button("Walk-In Booking", key="pub_walkin",
@@ -911,8 +926,8 @@ def show_public_fuel_view():
         st.markdown("""
         <div class="segment-card">
             <div style="font-size:40px">🚨</div>
-            <h3 style="color:#FF3D00">Emergency Services</h3>
-            <p style="color:#B0BEC5;font-size:0.9rem">Registered emergency vehicles. No login required.</p>
+            <h3 style="color:#0B6B53">Emergency Services</h3>
+            <p style="color:#4A5D56;font-size:0.9rem">Registered emergency vehicles. No login required.</p>
         </div>
         """, unsafe_allow_html=True)
         if st.button("Emergency Services", key="pub_emergency",
@@ -924,8 +939,8 @@ def show_public_fuel_view():
         st.markdown("""
         <div class="segment-card">
             <div style="font-size:40px">🔍</div>
-            <h3 style="color:#FFD700">Find My Booking</h3>
-            <p style="color:#B0BEC5;font-size:0.9rem">Retrieve your token using your driver's license.</p>
+            <h3 style="color:#0B6B53">Find My Booking</h3>
+            <p style="color:#4A5D56;font-size:0.9rem">Retrieve your token using your driver's license.</p>
         </div>
         """, unsafe_allow_html=True)
         if st.button("Find My Booking", key="pub_find",
@@ -1066,8 +1081,8 @@ def show_govt_segment():
             st.markdown("""
             <div class="segment-card">
                 <div style="font-size:50px">⛽</div>
-                <h2 style="color:#00C853">Fuel Management</h2>
-                <p style="color:#B0BEC5">
+                <h2 style="color:#0B6B53">Fuel Management</h2>
+                <p style="color:#4A5D56">
                 National analytics, quotas, prices, special vehicles,
                 announcements, audit log.
                 </p>
@@ -1082,7 +1097,7 @@ def show_govt_segment():
             st.markdown("""
             <div class="segment-card">
                 <div style="font-size:50px">⚡</div>
-                <h2 style="color:#1E90FF">Electricity Management</h2>
+                <h2 style="color:#0B6B53">Electricity Management</h2>
                 <p style="color:#B0BEC5">
                 Outage analytics by area, feeder performance,
                 PDB activity audit log.
