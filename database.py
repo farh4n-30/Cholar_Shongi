@@ -1,5 +1,6 @@
 import sqlite3
 import os
+import threading
 import bcrypt
 from datetime import datetime, timedelta, date
 import random
@@ -18,6 +19,7 @@ class DatabaseManager:
         self.conn.row_factory = sqlite3.Row
         self.conn.execute("PRAGMA foreign_keys = ON")
         self.conn.execute("PRAGMA journal_mode = WAL")
+        self._lock = threading.Lock()
         self._create_all_tables()
         self._seed_if_empty()
 
@@ -2090,9 +2092,10 @@ class DatabaseManager:
         self.conn.commit()
 
     def cleanup_expired(self):
-        self._mark_no_shows()
-        self._expire_waitlist_entries()
-        self._reset_stale_6month_counters()
+        with self._lock:
+            self._mark_no_shows()
+            self._expire_waitlist_entries()
+            self._reset_stale_6month_counters()
 
     def _mark_no_shows(self):
         c     = self.conn.cursor()
@@ -2188,3 +2191,4 @@ class DatabaseManager:
 
     def close(self):
         self.conn.close()
+
