@@ -1217,7 +1217,6 @@ def show_emergency_services(db):
     )
 
     with st.form("emergency_form"):
-        # RESTORED: Input collection field for driver identification
         dl = st.text_input(
             "Driver's License Number",
             placeholder="DL-CTG-0042-2020"
@@ -1320,7 +1319,6 @@ def show_emergency_services(db):
             token = generate_emergency_token(db)
             est = calculate_cost(amount, price)
 
-            # Positional parameters mapped directly to your database-1 layer layout
             db.create_emergency_booking(
                 token,
                 verified["registration_number"],
@@ -2128,8 +2126,6 @@ def show_verify_token(db, station_id=None):
             st.success(
                 f"QR scanned — Token: **{st.session_state.verify_token_value}**"
             )
-        else:
-            st.info("No QR code detected. Please try again.")
     token_input = st.session_state.verify_token_value
     if token_input:
         res = db.get_booking_by_token(token_input)
@@ -2137,7 +2133,6 @@ def show_verify_token(db, station_id=None):
             st.error("❌ Invalid token. No active booking found with this code.")
             return
 
-        # Safe structural conversion mapping to prevent tuple IndexError / KeyError anomalies
         if isinstance(res, dict):
             booking = res
         elif hasattr(res, "keys"):
