@@ -2276,6 +2276,7 @@ def show_pump_management(db, station_id: int):
         st.error("Station not found.")
         return
     pump_count = stn["pump_count"]
+    health = db.get_station_health(station_id)
 
     st.markdown(f"**Station:** {stn['name']}  |  **Pumps:** {pump_count}")
     st.markdown("---")
