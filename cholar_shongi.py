@@ -754,7 +754,7 @@ def show_landing_page():
     fuel_path = os.path.join(assets_dir, "fuel_illustration.png")
 
     if os.path.exists(hero_path):
-        st.image(hero_path, use_container_width=True)
+        st.image(hero_path, use_column_width=True)
     else:
         st.error("Hero artwork could not be loaded.")
 
