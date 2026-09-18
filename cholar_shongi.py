@@ -306,6 +306,11 @@ def inject_css():
         transform: translateY(-2px);
     }
 
+    .govt-segment-card {
+        min-height: 210px;
+        box-sizing: border-box;
+    }
+
     .badge-active {
         background: #FFF1EE;
         color: #C73E1D;
@@ -768,10 +773,13 @@ def show_landing_page():
     electricity_path = os.path.join(assets_dir, "electricity_illustration.png")
     fuel_path = os.path.join(assets_dir, "fuel_illustration.png")
 
-    if os.path.exists(hero_path):
-        st.image(hero_path, use_column_width=True)
-    else:
-        st.error("Hero artwork could not be loaded.")
+    hero_left, hero_center, hero_right = st.columns([0.04, 0.92, 0.04])
+
+    with hero_center:
+        if os.path.exists(hero_path):
+            st.image(hero_path, use_column_width=True)
+        else:
+            st.error("Hero artwork could not be loaded.")
 
     announcements = db.get_active_announcements()
 
@@ -1079,7 +1087,7 @@ def show_govt_segment():
 
         with col1:
             st.markdown("""
-            <div class="segment-card">
+            <div class="segment-card govt-segment-card">
                 <div style="font-size:50px">⛽</div>
                 <h2 style="color:#0B6B53">Fuel Management</h2>
                 <p style="color:#4A5D56">
@@ -1095,7 +1103,7 @@ def show_govt_segment():
 
         with col2:
             st.markdown("""
-            <div class="segment-card">
+            <div class="segment-card govt-segment-card">
                 <div style="font-size:50px">⚡</div>
                 <h2 style="color:#0B6B53">Electricity Management</h2>
                 <p style="color:#B0BEC5">
@@ -1184,3 +1192,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
