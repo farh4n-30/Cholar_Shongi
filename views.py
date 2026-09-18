@@ -1,4 +1,6 @@
 import streamlit as st
+import base64
+from streamlit_qrcode_scanner import qrcode_scanner
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
@@ -30,6 +32,7 @@ from utils import (
     format_suspension_message, get_booking_type_label,
     get_adjacent_areas, CITIES_AREAS,
     format_walkin_denial_reason,
+    generate_token_qr,
 )
 from auth import (
     require_role, get_active_suspension_message,
@@ -53,6 +56,18 @@ from email_service import (
 )
 
 
+COLOR_PRIMARY    = "#075E43"
+COLOR_DEEP_GREEN = "#064A37"
+COLOR_LEAF       = "#238B63"
+COLOR_MINT       = "#EAF5EF"
+COLOR_PALE_MINT  = "#F5FAF7"
+COLOR_WARM_WHITE = "#FCFDFC"
+COLOR_INK        = "#17352C"
+COLOR_MUTED     = "#637A71"
+COLOR_BORDER    = "#DCE9E2"
+COLOR_CRITICAL  = "#C0392B"
+COLOR_WARNING   = "#C77D22"
+
 def fuel_gauge_bar(label: str, stock: float,
                    capacity: float, fuel_type: str):
     pct    = get_fuel_pct(stock, capacity)
@@ -61,8 +76,8 @@ def fuel_gauge_bar(label: str, stock: float,
     st.markdown(
         f"""
         <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
-            <div style="flex:1;background:#0A1628;border-radius:8px;
-                        height:14px;overflow:hidden">
+            <div style="flex:1;background:{COLOR_WARM_WHITE};border-radius:8px;
+                        height:14px;overflow:hidden;border:1px solid {COLOR_BORDER}">
                 <div style="width:{pct}%;background:{colour};
                             height:100%;border-radius:8px;
                             transition:width 0.5s"></div>
@@ -71,7 +86,7 @@ def fuel_gauge_bar(label: str, stock: float,
                          min-width:60px;text-align:right">
                 {pct}%
             </span>
-            <span style="color:#B0BEC5;font-size:0.85rem;min-width:120px">
+            <span style="color:{COLOR_MUTED};font-size:0.85rem;min-width:120px">
                 {int(stock)}L / {int(capacity)}L
             </span>
         </div>
@@ -80,34 +95,30 @@ def fuel_gauge_bar(label: str, stock: float,
     )
 
 
+
 def token_card(token: str, station_name: str, station_address: str,
                slot_datetime: str, fuel_type: str, amount: float,
                estimated_cost: float, expires_label: str,
                is_emergency: bool = False):
-    colour = "#FF3D00" if is_emergency else "#1E90FF"
+    colour = COLOR_CRITICAL if is_emergency else COLOR_PRIMARY
     label  = "🚨 EMERGENCY TOKEN" if is_emergency else "✅ Booking Confirmed!"
-
     try:
         slot_dt  = datetime.strptime(slot_datetime, "%Y-%m-%d %H:%M:%S")
         slot_str = slot_dt.strftime("%A, %B %d, %Y at %I:%M %p")
     except Exception:
         slot_str = slot_datetime
-
     st.markdown(
         f"""
-        <div style="background:#132039;border:2px solid {colour};
+        <div style="background:{COLOR_WARM_WHITE};border:2px solid {colour};
                     border-radius:16px;padding:28px;text-align:center;
-                    margin:16px 0">
-            <div style="font-size:1.1rem;color:#B0BEC5;
-                        margin-bottom:8px">{label}</div>
-            <div style="font-family:monospace;font-size:2.2rem;
-                        font-weight:900;color:{colour};
-                        letter-spacing:6px;margin:12px 0">
+                    margin:16px 0;box-shadow:0 2px 10px rgba(6,74,55,0.08)">
+            <div style="font-size:1.1rem;color:{COLOR_MUTED};margin-bottom:8px">{label}</div>
+            <div style="font-family:monospace;font-size:2.2rem;font-weight:900;color:{colour};
+                        letter-spacing:6px;margin:12px 0;word-break:break-word">
                 {token}
             </div>
-            <hr style="border-color:{colour}33;margin:16px 0">
-            <div style="text-align:left;color:#FFFFFF;
-                        line-height:2;font-size:0.95rem">
+            <hr style="border:0;border-top:1px solid {COLOR_BORDER};margin:16px 0">
+            <div style="text-align:left;color:{COLOR_INK};line-height:2;font-size:0.95rem">
                 <b>Station:</b>    {station_name}<br>
                 <b>Address:</b>    {station_address}<br>
                 <b>Time:</b>       {slot_str}<br>
@@ -116,16 +127,25 @@ def token_card(token: str, station_name: str, station_address: str,
                 <b>Expires:</b>    {expires_label}
             </div>
         </div>
-        """,
-        unsafe_allow_html=True
+        """, unsafe_allow_html=True
     )
-    st.button("📋 Copy Token", key=f"copy_{token}",
-              help=f"Token: {token}")
+    st.button("📋 Copy Token", key=f"copy_{token}", help=f"Token: {token}")
+    qr_buffer = generate_token_qr(token)
+    if qr_buffer:
+        qr_b64 = base64.b64encode(qr_buffer.getvalue()).decode()
+        st.markdown(
+            f'<div style="text-align:center;margin:16px 0 8px 0">'
+            f'<img src="data:image/png;base64,{qr_b64}" style="width:150px;height:150px;border-radius:8px;border:3px solid {colour}"/>'
+            f'<div style="color:{COLOR_MUTED};font-size:0.8rem;margin-top:8px">'
+            f'Show this QR code at the station for faster verification.</div></div>',
+            unsafe_allow_html=True
+        )
+
 
 
 def status_badge(status: str) -> str:
     label  = STATUS_LABELS.get(status, status.title())
-    colour = STATUS_COLOURS.get(status, "#B0BEC5")
+    colour = STATUS_COLOURS.get(status, COLOR_MUTED)
     return (
         f'<span style="background:{colour}22;color:{colour};'
         f'padding:3px 10px;border-radius:20px;font-size:0.8rem;'
@@ -133,14 +153,16 @@ def status_badge(status: str) -> str:
     )
 
 
+
 def health_badge(health: str) -> str:
     label  = HEALTH_LABELS.get(health, health)
-    colour = HEALTH_COLOURS.get(health, "#B0BEC5")
+    colour = HEALTH_COLOURS.get(health, COLOR_MUTED)
     return (
         f'<span style="background:{colour}22;color:{colour};'
         f'padding:4px 14px;border-radius:20px;font-size:0.9rem;'
         f'border:1px solid {colour};font-weight:bold">{label}</span>'
     )
+
 
 
 def period_selector(key: str = "period") -> str:
@@ -163,7 +185,7 @@ def period_selector(key: str = "period") -> str:
 def show_electricity_public(db):
     st.markdown("## ⚡ Electricity Schedules")
     st.markdown(
-        '<p style="color:#B0BEC5">Check load shedding schedules '
+        f'<p style="color:{COLOR_MUTED}">Check load shedding schedules '
         'for your area. No login required.</p>',
         unsafe_allow_html=True
     )
@@ -182,7 +204,7 @@ def show_electricity_public(db):
                 if re.match(url_pattern, part):
                     rendered += (
                         f'<a href="{part}" target="_blank" '
-                        f'style="color:#1E90FF">{part}</a>'
+                        f'style="color:{COLOR_PRIMARY}">{part}</a>'
                     )
                 else:
                     rendered += part
@@ -190,7 +212,7 @@ def show_electricity_public(db):
             rendered = message
 
         st.markdown(
-            f'<div style="background:#1E90FF15;border-left:4px solid #1E90FF;'
+            f'<div style="background:{COLOR_PRIMARY}15;border-left:4px solid {COLOR_PRIMARY};'
             f'padding:10px 16px;border-radius:8px;margin:8px 0">'
             f'📢 <strong>{ann["title"]}</strong>: {rendered}</div>',
             unsafe_allow_html=True
@@ -215,8 +237,8 @@ def show_electricity_public(db):
 
     if db.check_48hr_change(city, area):
         st.markdown(
-            f'<div style="background:#FFB30015;border-left:4px solid '
-            f'#FFB300;padding:10px 16px;border-radius:8px;margin:8px 0">'
+            f'<div style="background:{COLOR_WARNING}15;border-left:4px solid '
+            f'{COLOR_WARNING};padding:10px 16px;border-radius:8px;margin:8px 0">'
             f'⚠️ Schedules in <strong>{area}</strong> have been updated '
             f'in the last 48 hours.</div>',
             unsafe_allow_html=True
@@ -243,11 +265,11 @@ def show_electricity_public(db):
         end_str   = format_time_only(s["end_datetime"])
         duration  = format_duration(s["start_datetime"], s["end_datetime"])
         st.markdown(
-            f'<div style="background:#132039;border-left:4px solid {colour};'
+            f'<div style="background:{COLOR_PALE_MINT};border-left:4px solid {colour};'
             f'padding:16px;border-radius:8px;margin:8px 0">'
             f'<strong>{s["feeder_name"]}</strong><br>'
-            f'<span style="color:#B0BEC5">Start: {start_str}</span><br>'
-            f'<span style="color:#B0BEC5">End:   {end_str}</span><br>'
+            f'<span style="color:{COLOR_MUTED}">Start: {start_str}</span><br>'
+            f'<span style="color:{COLOR_MUTED}">End:   {end_str}</span><br>'
             f'<span style="color:{colour}">Duration: {duration}</span>'
             f'</div>',
             unsafe_allow_html=True
@@ -256,17 +278,17 @@ def show_electricity_public(db):
     if active:
         st.markdown("### ⚡ Active Now")
         for s in active:
-            schedule_card(s, "#FF3D00")
+            schedule_card(s, COLOR_CRITICAL)
 
     if upcoming:
         st.markdown("### 🕐 Upcoming")
         for s in upcoming:
-            schedule_card(s, "#FFB300")
+            schedule_card(s, COLOR_WARNING)
 
     if expired:
         with st.expander(f"✅ Expired ({len(expired)} schedules)"):
             for s in expired:
-                schedule_card(s, "#B0BEC5")
+                schedule_card(s, COLOR_MUTED)
 
     if not active and not upcoming:
         st.success(f"No active or upcoming power cuts scheduled "
@@ -346,11 +368,11 @@ def show_pdb_dashboard(db):
                 status     = get_schedule_status(s["start_datetime"],
                                                   s["end_datetime"])
                 colour_map = {
-                    "active":   "#FF3D00",
-                    "upcoming": "#FFB300",
-                    "expired":  "#B0BEC5",
+                    "active":   COLOR_CRITICAL,
+                    "upcoming": COLOR_WARNING,
+                    "expired":  COLOR_MUTED,
                 }
-                colour = colour_map.get(status, "#B0BEC5")
+                colour = colour_map.get(status, COLOR_MUTED)
 
                 with st.expander(
                     f"{s['feeder_name']} — "
@@ -491,8 +513,8 @@ def show_advance_booking(db):
                      "Slot", "Details", "Confirm", "Done"]
     progress_html = ""
     for i, s_label in enumerate(steps, 1):
-        colour = "#1E90FF" if i == step else (
-            "#00C853" if i < step else "#B0BEC530"
+        colour = COLOR_PRIMARY if i == step else (
+            COLOR_LEAF if i < step else f"{COLOR_MUTED}30"
         )
         progress_html += (
             f'<span style="color:{colour};margin:0 8px;'
@@ -525,13 +547,13 @@ def show_advance_booking(db):
             st.markdown("**Available Stations:**")
             for stn in stations:
                 st.markdown(
-                    f'<div style="background:#132039;padding:12px 16px;'
+                    f'<div style="background:{COLOR_PALE_MINT};padding:12px 16px;'
                     f'border-radius:8px;margin:6px 0;'
-                    f'border:1px solid #1E90FF22">'
+                    f'border:1px solid {COLOR_PRIMARY}22">'
                     f'<strong>{stn["name"]}</strong><br>'
-                    f'<span style="color:#B0BEC5;font-size:0.85rem">'
+                    f'<span style="color:{COLOR_MUTED};font-size:0.85rem">'
                     f'{stn["address"]}</span><br>'
-                    f'<span style="color:#B0BEC5;font-size:0.85rem">'
+                    f'<span style="color:{COLOR_MUTED};font-size:0.85rem">'
                     f'Opens {stn["opening_time"]} — '
                     f'Closes {stn["closing_time"]}</span>'
                     f'</div>',
@@ -550,7 +572,7 @@ def show_advance_booking(db):
         stn = st.session_state.selected_station
         st.markdown("### Step 2: Vehicle & Fuel")
         st.markdown(
-            f'<div style="color:#B0BEC5;margin-bottom:8px">'
+            f'<div style="color:{COLOR_MUTED};margin-bottom:8px">'
             f'Station: <strong>{stn["name"]}</strong></div>',
             unsafe_allow_html=True
         )
@@ -591,7 +613,7 @@ def show_advance_booking(db):
 
             est_cost = calculate_cost(amount, price)
             st.markdown(
-                f'<div style="background:#132039;padding:12px;'
+                f'<div style="background:{COLOR_PALE_MINT};padding:12px;'
                 f'border-radius:8px;margin:8px 0">'
                 f'Current price: <strong>{format_currency(price)}/L</strong>'
                 f'&nbsp;&nbsp;|&nbsp;&nbsp;'
@@ -628,7 +650,7 @@ def show_advance_booking(db):
 
         st.markdown("### Step 3: Select Time Slot")
         st.markdown(
-            f'<div style="color:#B0BEC5;margin-bottom:8px">'
+            f'<div style="color:{COLOR_MUTED};margin-bottom:8px">'
             f'{stn["name"]} · {vehicle} · {fuel} · {int(amount)}L'
             f'</div>',
             unsafe_allow_html=True
@@ -645,13 +667,13 @@ def show_advance_booking(db):
         if best_slot:
             best_str = best_slot.strftime("%A, %B %d at %I:%M %p")
             st.markdown(
-                f'<div style="background:#00C85315;border:2px solid #00C853;'
+                f'<div style="background:{COLOR_LEAF}15;border:2px solid {COLOR_LEAF};'
                 f'padding:16px;border-radius:12px;margin:8px 0;'
                 f'text-align:center">'
-                f'<div style="color:#B0BEC5;font-size:0.85rem">⭐ BEST AVAILABLE</div>'
-                f'<div style="font-size:1.2rem;color:#FFFFFF;font-weight:bold;'
+                f'<div style="color:{COLOR_MUTED};font-size:0.85rem">⭐ BEST AVAILABLE</div>'
+                f'<div style="font-size:1.2rem;color:{COLOR_INK};font-weight:bold;'
                 f'margin:8px 0">{best_str}</div>'
-                f'<div style="color:#B0BEC5;font-size:0.85rem">'
+                f'<div style="color:{COLOR_MUTED};font-size:0.85rem">'
                 f'First available slot at least 30 minutes from now</div>'
                 f'</div>',
                 unsafe_allow_html=True
@@ -714,7 +736,7 @@ def show_advance_booking(db):
             if all_empty:
                 st.markdown("---")
                 st.markdown(
-                    '<div style="background:#FFB30015;border:1px solid #FFB300;'
+                    f'<div style="background:{COLOR_WARNING}15;border:1px solid {COLOR_WARNING};'
                     'padding:16px;border-radius:12px;text-align:center">'
                     '⚠️ No slots available in the next 3 days.'
                     '</div>',
@@ -765,7 +787,7 @@ def show_advance_booking(db):
             slot_disp = slot_str
 
         st.markdown(
-            f'<div style="background:#132039;padding:12px;'
+            f'<div style="background:{COLOR_PALE_MINT};padding:12px;'
             f'border-radius:8px;margin-bottom:12px">'
             f'Selected slot: <strong>{slot_disp}</strong>'
             f'&nbsp;&nbsp;|&nbsp;&nbsp;'
@@ -872,7 +894,7 @@ def show_advance_booking(db):
             exp_label = "Midnight tonight"
 
         st.markdown(
-            f'<div style="background:#132039;border:1px solid #1E90FF44;'
+            f'<div style="background:{COLOR_PALE_MINT};border:1px solid {COLOR_PRIMARY}44;'
             f'border-radius:12px;padding:20px;line-height:2.2">'
             f'<strong>Station:</strong>     {stn["name"]}<br>'
             f'<strong>Address:</strong>     {stn["address"]}<br>'
@@ -965,7 +987,7 @@ def show_advance_booking(db):
 def show_walkin_booking(db):
     st.markdown("## 🚶 Walk-In Booking")
     st.markdown(
-        '<p style="color:#B0BEC5">'
+        f'<p style="color:{COLOR_MUTED}">'
         'For when you are at a station and want to refuel now. '
         'Requires admin approval.</p>',
         unsafe_allow_html=True
@@ -994,8 +1016,8 @@ def show_walkin_booking(db):
 
     for s in closed_stations:
         st.markdown(
-            f'<div style="background:#FF3D0010;border:1px solid #FF3D00;'
-            f'padding:10px;border-radius:8px;margin:4px 0;color:#B0BEC5">'
+            f'<div style="background:{COLOR_CRITICAL}10;border:1px solid {COLOR_CRITICAL};'
+            f'padding:10px;border-radius:8px;margin:4px 0;color:{COLOR_MUTED}">'
             f'❌ {s["name"]} — Not accepting walk-in requests</div>',
             unsafe_allow_html=True
         )
@@ -1102,8 +1124,8 @@ def show_walkin_booking(db):
                 )
                 show_email_confirmation(st.session_state.email)
                 st.markdown(
-                    '<div style="background:#132039;padding:12px;'
-                    'border-radius:8px;margin-top:8px;color:#B0BEC5">'
+                    f'<div style="background:{COLOR_PALE_MINT};padding:12px;'
+                    f'border-radius:8px;margin-top:8px;color:{COLOR_MUTED}">'
                     'Your request is pending approval. '
                     'Check the status in Find My Booking.</div>',
                     unsafe_allow_html=True
@@ -1113,7 +1135,7 @@ def show_walkin_booking(db):
 def show_emergency_services(db):
     st.markdown("## 🚨 Emergency Services")
     st.markdown(
-        '<p style="color:#B0BEC5">'
+        f'<p style="color:{COLOR_MUTED}">'
         'Reserved for registered emergency and government vehicles. '
         'No login required.</p>',
         unsafe_allow_html=True
@@ -1133,7 +1155,7 @@ def show_emergency_services(db):
             is_emergency=True
         )
         st.markdown(
-            f'<div style="color:#B0BEC5;text-align:center;'
+            f'<div style="color:{COLOR_MUTED};text-align:center;'
             f'margin-top:8px">ETA: approximately '
             f'{data["eta_label"]}</div>',
             unsafe_allow_html=True
@@ -1183,7 +1205,7 @@ def show_emergency_services(db):
         verified["vehicle_category"], verified["vehicle_category"].title()
     )
     st.markdown(
-        f'<div style="background:#FF3D0015;border:2px solid #FF3D00;'
+        f'<div style="background:{COLOR_CRITICAL}15;border:2px solid {COLOR_CRITICAL};'
         f'border-radius:12px;padding:16px;margin:8px 0">'
         f'<strong>✅ Vehicle Verified</strong><br>'
         f'Registration: <strong>{verified["registration_number"]}</strong><br>'
@@ -1233,8 +1255,8 @@ def show_emergency_services(db):
             st.markdown("**Available Stations:**")
             for sd in station_data:
                 st.markdown(
-                    f'<div style="background:#132039;padding:8px 12px;'
-                    f'border-radius:6px;margin:4px 0;color:#B0BEC5">'
+                    f'<div style="background:{COLOR_PALE_MINT};padding:8px 12px;'
+                    f'border-radius:6px;margin:4px 0;color:{COLOR_MUTED}">'
                     f'<strong>{sd["name"]}</strong> — '
                     f'{fuel} available: <strong>'
                     f'{int(sd["available"])}L</strong>'
@@ -1394,17 +1416,32 @@ def show_find_my_booking(db, logged_in: bool = False):
 
         late_badge = (
             "&nbsp;&nbsp;"
-            "<span style='color:#FFB300;font-size:0.85rem'>"
+            f"<span style='color:{COLOR_WARNING};font-size:0.85rem'>"
             "⏰ Late arrival (same-day token still valid)</span>"
             if late else ""
         )
 
+        qr_html = ""
+        if logged_in:
+            qr_buffer = generate_token_qr(booking["token"])
+            qr_base64 = base64.b64encode(qr_buffer.getvalue()).decode("utf-8") if qr_buffer else ""
+            if qr_base64:
+                qr_html = (
+                    f'<div style="text-align:center;margin-top:18px">'
+                    f'<img src="data:image/png;base64,{qr_base64}" alt="Booking token QR code" '
+                    f'style="width:160px;max-width:100%;height:auto;background:#FFFFFF;'
+                    f'padding:8px;border-radius:10px;border:1px solid {COLOR_BORDER}">'
+                    f'<div style="color:{COLOR_MUTED};font-size:0.85rem;margin-top:8px">'
+                    f'Show this QR code at the station for faster verification.</div>'
+                    f'</div>'
+                )
+
         st.markdown(
-            f'<div style="background:#132039;border:1px solid #1E90FF44;'
+            f'<div style="background:{COLOR_PALE_MINT};border:1px solid {COLOR_BORDER};'
             f'border-radius:12px;padding:20px;line-height:2.2">'
             f'<strong>Token:</strong> '
             f'<span style="font-family:monospace;font-size:1.1rem;'
-            f'color:#1E90FF">{token_display}</span>'
+            f'color:{COLOR_PRIMARY}">{token_display}</span>'
             f'{late_badge}<br>'
             f'<strong>Station:</strong> '
             f'{booking.get("station_name", "—")}<br>'
@@ -1423,6 +1460,22 @@ def show_find_my_booking(db, logged_in: bool = False):
             st.caption("Login to see full token and manage your booking.")
 
         if logged_in:
+            with st.expander("📱 Show QR Code for Station"):
+                qr_buffer = generate_token_qr(booking["token"])
+                if qr_buffer:
+                    qr_b64 = base64.b64encode(qr_buffer.getvalue()).decode()
+                    col_center = st.columns([1, 2, 1])[1]
+                    with col_center:
+                        st.markdown(
+                            f'<div style="text-align:center">'
+                            f'<img src="data:image/png;base64,{qr_b64}" '
+                            f'style="width:180px;height:180px;border-radius:8px;border:1px solid {COLOR_BORDER}"/>'
+                            f'<div style="color:{COLOR_MUTED};font-size:0.85rem;margin-top:8px">'
+                            f'Token: <strong>{booking["token"]}</strong></div>'
+                            f'</div>',
+                            unsafe_allow_html=True
+                        )
+
             postpone_count = db.get_postpone_count_this_month(dl)
             st.caption(
                 f"Postponements used this month: {postpone_count} of 3"
@@ -1470,8 +1523,8 @@ def show_find_my_booking(db, logged_in: bool = False):
                 )
 
                 st.markdown(
-                    f'<div style="background:#132039;border:1px solid '
-                    f'#FFB30044;border-radius:12px;padding:16px;margin:8px 0">'
+                    f'<div style="background:{COLOR_PALE_MINT};border:1px solid '
+                    f'{COLOR_WARNING}44;border-radius:12px;padding:16px;margin:8px 0">'
                     f'<strong>{type_label}</strong><br>'
                     f'Station: {w["station_name"]}<br>'
                     f'Fuel: {w["fuel_type"]} | '
@@ -1502,10 +1555,10 @@ def show_find_my_booking(db, logged_in: bool = False):
                 eta_str = emr_booking["eta_datetime"]
 
             st.markdown(
-                f'<div style="background:#FF3D0010;border:2px solid #FF3D00;'
+                f'<div style="background:{COLOR_CRITICAL}10;border:2px solid {COLOR_CRITICAL};'
                 f'border-radius:12px;padding:16px">'
                 f'<strong>🚨 Emergency Token:</strong> '
-                f'<span style="font-family:monospace;color:#FF3D00">'
+                f'<span style="font-family:monospace;color:{COLOR_CRITICAL}">'
                 f'{emr_booking["token"]}</span><br>'
                 f'Station: {emr_booking["station_name"]}<br>'
                 f'Fuel: {emr_booking["fuel_type"]} | '
@@ -1514,6 +1567,7 @@ def show_find_my_booking(db, logged_in: bool = False):
                 f'</div>',
                 unsafe_allow_html=True
             )
+
 
 
 def _show_postpone_flow(db, booking, postpone_count):
@@ -1658,7 +1712,7 @@ def _show_cancel_confirm(db, booking):
 
     if check["tier"] != "clean":
         st.markdown(
-            f'<div style="background:#FF3D0015;border:1px solid #FF3D00;'
+            f'<div style="background:{COLOR_CRITICAL}15;border:1px solid {COLOR_CRITICAL};'
             f'padding:12px;border-radius:8px">'
             f'{check["message"]}'
             f'</div>',
@@ -1738,7 +1792,7 @@ def _check_waitlist_offer(db):
             token_disp = f"Token: {row['token']}"
 
     st.markdown(
-        f'<div style="background:#FFD70015;border:2px solid #FFD700;'
+        f'<div style="background:{COLOR_WARNING}15;border:2px solid {COLOR_WARNING};'
         f'border-radius:12px;padding:16px;margin:12px 0">'
         f'<strong>🔔 SLOT AVAILABLE — ACTION REQUIRED</strong><br><br>'
         f'A slot has opened at {offer["station_name"]}.<br>'
@@ -1842,13 +1896,13 @@ def show_station_dashboard(db, station_id: int):
     )
 
     st.markdown(
-        f'<div style="background:#132039;border-radius:16px;'
+        f'<div style="background:{COLOR_PALE_MINT};border-radius:16px;'
         f'padding:24px;margin-bottom:16px">'
         f'<div style="font-size:1.2rem;font-weight:bold">'
         f'Good day, {stn["name"]} 👋</div>'
-        f'<div style="color:#B0BEC5">'
+        f'<div style="color:{COLOR_MUTED}">'
         f'{datetime.now().strftime("%A, %B %d, %Y")}</div>'
-        f'<hr style="border-color:#ffffff15;margin:12px 0">'
+        f'<hr style="border-color:{COLOR_BORDER};margin:12px 0">'
         f'📅 Bookings today: <strong>{len(today_bookings)}</strong><br>'
         f'⛽ First appointment: <strong>'
         f'{format_time_only(first_appt) if first_appt else "None"}'
@@ -1884,7 +1938,7 @@ def show_station_dashboard(db, station_id: int):
 
         for b in bookings:
             late   = is_slot_late(b["slot_datetime"])
-            row_bg = "#FFB30015" if late else "#132039"
+            row_bg = f"{COLOR_WARNING}15" if late else COLOR_PALE_MINT
             status = "⏰ Late" if late else "📅 Scheduled"
 
             all_rows.append({
@@ -1917,7 +1971,7 @@ def show_station_dashboard(db, station_id: int):
                     "time":    eta_str,
                     "type":    "🚨 Emergency",
                     "status":  "📅 Expected",
-                    "bg":      "#FF3D0015",
+                    "bg":      f"{COLOR_CRITICAL}15",
                     "is_emr":  True,
                 })
 
@@ -1926,25 +1980,25 @@ def show_station_dashboard(db, station_id: int):
         else:
             for row in all_rows:
                 emr_badge = (
-                    '&nbsp;<span style="background:#FF3D0033;'
-                    'color:#FF3D00;padding:2px 8px;border-radius:12px;'
+                    f'&nbsp;<span style="background:{COLOR_CRITICAL}33;'
+                    f'color:{COLOR_CRITICAL};padding:2px 8px;border-radius:12px;'
                     'font-size:0.8rem">🚨 EMERGENCY</span>'
                     if row["is_emr"] else ""
                 )
                 st.markdown(
                     f'<div style="background:{row["bg"]};padding:10px 14px;'
                     f'border-radius:8px;margin:4px 0">'
-                    f'<code style="color:#1E90FF;font-size:1rem">'
+                    f'<code style="color:{COLOR_PRIMARY};font-size:1rem">'
                     f'{row["token"]}</code>{emr_badge}'
                     f'&nbsp;&nbsp;'
-                    f'<span style="color:#FFFFFF">{row["vehicle"]}</span>'
+                    f'<span style="color:{COLOR_INK}">{row["vehicle"]}</span>'
                     f'&nbsp;&nbsp;'
-                    f'<span style="color:#B0BEC5">{row["fuel"]}</span>'
+                    f'<span style="color:{COLOR_MUTED}">{row["fuel"]}</span>'
                     f'&nbsp;&nbsp;'
-                    f'<span style="color:#B0BEC5;font-size:0.85rem">'
+                    f'<span style="color:{COLOR_MUTED};font-size:0.85rem">'
                     f'{row["dl"]}</span>'
                     f'&nbsp;&nbsp;'
-                    f'<span style="color:#FFD700;float:right">'
+                    f'<span style="color:{COLOR_PRIMARY};float:right">'
                     f'{row["time"]}</span>'
                     f'</div>',
                     unsafe_allow_html=True
@@ -1965,12 +2019,12 @@ def show_station_dashboard(db, station_id: int):
                     sub_str = "—"
 
                 st.markdown(
-                    f'<div style="background:#132039;border:1px solid '
-                    f'#1E90FF22;padding:12px;border-radius:8px;margin:6px 0">'
+                    f'<div style="background:{COLOR_PALE_MINT};border:1px solid '
+                    f'{COLOR_PRIMARY}22;padding:12px;border-radius:8px;margin:6px 0">'
                     f'<strong>{req["vehicle_type"]}</strong> · '
                     f'{req["fuel_type"]} · '
                     f'{int(req["requested_amount"])}L<br>'
-                    f'<span style="color:#B0BEC5;font-size:0.85rem">'
+                    f'<span style="color:{COLOR_MUTED};font-size:0.85rem">'
                     f'DL: {req["driver_license"]} | '
                     f'Requested: {sub_str}</span>'
                     f'</div>',
@@ -2046,18 +2100,39 @@ def show_station_dashboard(db, station_id: int):
 @require_role("station_admin")
 def show_verify_token(db, station_id=None):
     st.markdown("### 🔍 Verify & Service Token")
-    
-    with st.form("token_lookup_form"):
-        token_input = st.text_input("Enter 6-Digit Token", placeholder="e.g., ABC123").strip().upper()
-        lookup_submitted = st.form_submit_button("Search Booking", use_container_width=True)
-        
-    if lookup_submitted and not token_input:
-        st.error("Please enter a valid token to search.")
-        return
-
+    if "verify_token_value" not in st.session_state:
+        st.session_state.verify_token_value = ""
+    tab_manual, tab_scan = st.tabs(["⌨️ Enter Token Manually", "📷 Scan QR Code"])
+    with tab_manual:
+        with st.form("token_lookup_form"):
+            manual_token = st.text_input(
+                "Enter Booking Token",
+                placeholder="A1B2C3D4"
+            ).strip().upper()
+            lookup_submitted = st.form_submit_button(
+                "Search Booking", use_container_width=True
+            )
+        if lookup_submitted:
+            st.session_state.verify_token_value = manual_token
+            if not manual_token:
+                st.error("Please enter a valid token to search.")
+    with tab_scan:
+        st.markdown(
+            f'<p style="color:{COLOR_MUTED}">Point the camera at the '
+            "customer's QR code on their phone screen.</p>",
+            unsafe_allow_html=True
+        )
+        scanned = qrcode_scanner(key="station_token_qr_scanner")
+        if scanned:
+            st.session_state.verify_token_value = scanned.strip().upper()
+            st.success(
+                f"QR scanned — Token: **{st.session_state.verify_token_value}**"
+            )
+        else:
+            st.info("No QR code detected. Please try again.")
+    token_input = st.session_state.verify_token_value
     if token_input:
         res = db.get_booking_by_token(token_input)
-        
         if not res:
             st.error("❌ Invalid token. No active booking found with this code.")
             return
@@ -2087,13 +2162,13 @@ def show_verify_token(db, station_id=None):
 
         is_emergency = (booking["booking_type"] == "emergency")
         st.markdown(
-            f'<div style="background:#0D1F3D; border: 1px solid #1E3A8A; border-radius:12px; padding:20px; margin-bottom:20px">'
+            f'<div style="background:{COLOR_PALE_MINT}; border: 1px solid {COLOR_PRIMARY}; border-radius:12px; padding:20px; margin-bottom:20px">'
             f'<h4>📋 Booking Details {"(🚨 EMERGENCY)" if is_emergency else ""}</h4>'
             f'<b>Driver Name:</b> {booking["full_name"]}<br>'
             f'<b>Vehicle No:</b> {booking["license_plate"]}<br>'
             f'<b>Fuel Type:</b> {booking["fuel_type"]}<br>'
             f'<b>Requested Quantity:</b> {booking["requested_amount"]} Liters<br>'
-            f'<b>Status:</b> <span style="color:#FFA500">{booking["status"].upper()}</span>'
+            f'<b>Status:</b> <span style="color:{COLOR_WARNING}">{booking["status"].upper()}</span>'
             f'</div>',
             unsafe_allow_html=True
         )
@@ -2118,11 +2193,12 @@ def show_verify_token(db, station_id=None):
                     
                 if success:
                     st.success("🎉 Booking successfully completed and database updated!")
-                    if "token_input" in st.session_state:
-                        st.session_state.token_input = ""
+                    if "verify_token_value" in st.session_state:
+                        st.session_state.verify_token_value = ""
                     st.rerun()
                 else:
                     st.error("❌ Database update failed. Please verify pump inventories and try again.")
+
 @require_role("station_admin")
 def show_station_analytics(db, station_id: int):
     st.markdown("## 📊 Station Analytics")
@@ -2158,15 +2234,21 @@ def show_station_analytics(db, station_id: int):
         fig = px.bar(
             df_daily, x="day", y="total",
             title="Vehicles Serviced Per Day",
-            color_discrete_sequence=["#1E90FF"],
+            color_discrete_sequence=[COLOR_PRIMARY],
             labels={"day": "Date", "total": "Vehicles"}
         )
         fig.update_layout(
-            plot_bgcolor="#0A1628",
-            paper_bgcolor="#0A1628",
-            font_color="#FFFFFF"
+            plot_bgcolor="#FFFFFF",
+            paper_bgcolor="#FFFFFF",
+            font_color=COLOR_INK,
+            hoverlabel=dict(bgcolor="#FFFFFF", font_color=COLOR_INK),
+            xaxis=dict(showgrid=True, gridcolor=COLOR_BORDER, zeroline=False),
+            yaxis=dict(showgrid=True, gridcolor=COLOR_BORDER, zeroline=False),
+            margin=dict(l=48, r=24, t=64, b=48),
+            height=360,
+            hovermode="closest"
         )
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, use_container_width=True, config={"displaylogo": False})
 
     if data["by_vehicle"]:
         df_veh = pd.DataFrame([dict(r) for r in data["by_vehicle"]])
@@ -2174,15 +2256,21 @@ def show_station_analytics(db, station_id: int):
             df_veh, x="vehicle_type", y="cnt",
             title="Breakdown by Vehicle Type",
             color="vehicle_type",
+            color_discrete_sequence=[COLOR_PRIMARY, COLOR_LEAF, COLOR_MINT, COLOR_BORDER],
             labels={"vehicle_type": "Vehicle", "cnt": "Count"}
         )
         fig2.update_layout(
-            plot_bgcolor="#0A1628",
-            paper_bgcolor="#0A1628",
-            font_color="#FFFFFF",
+            plot_bgcolor="#FFFFFF",
+            paper_bgcolor="#FFFFFF",
+            font_color=COLOR_INK,
+            hoverlabel=dict(bgcolor="#FFFFFF", font_color=COLOR_INK),
+            xaxis=dict(showgrid=True, gridcolor=COLOR_BORDER, zeroline=False),
+            yaxis=dict(showgrid=True, gridcolor=COLOR_BORDER, zeroline=False),
+            margin=dict(l=48, r=24, t=64, b=48),
+            height=360,
             showlegend=False
         )
-        st.plotly_chart(fig2, use_container_width=True)
+        st.plotly_chart(fig2, use_container_width=True, config={"displaylogo": False})
 
 
 @require_role("station_admin")
@@ -2399,7 +2487,7 @@ def _show_govt_fuel(db):
     if critical:
         alerts = "<br>".join(critical)
         st.markdown(
-            f'<div style="background:#FF3D0015;border:2px solid #FF3D00;'
+            f'<div style="background:{COLOR_CRITICAL}15;border:2px solid {COLOR_CRITICAL};'
             f'border-radius:12px;padding:16px;margin-bottom:12px">'
             f'🚨 <strong>CRITICAL ALERTS</strong><br>{alerts}</div>',
             unsafe_allow_html=True
@@ -2429,14 +2517,20 @@ def _show_govt_fuel(db):
             fig = px.line(
                 df, x="day", y="total",
                 title="National Bookings Trend",
-                color_discrete_sequence=["#1E90FF"]
+                color_discrete_sequence=[COLOR_PRIMARY]
             )
             fig.update_layout(
-                plot_bgcolor="#0A1628",
-                paper_bgcolor="#0A1628",
-                font_color="#FFFFFF"
+                plot_bgcolor="#FFFFFF",
+                paper_bgcolor="#FFFFFF",
+                font_color=COLOR_INK,
+                hoverlabel=dict(bgcolor="#FFFFFF", font_color=COLOR_INK),
+                xaxis=dict(showgrid=True, gridcolor=COLOR_BORDER, zeroline=False),
+                yaxis=dict(showgrid=True, gridcolor=COLOR_BORDER, zeroline=False),
+                margin=dict(l=48, r=24, t=64, b=48),
+                height=360,
+                hovermode="closest"
             )
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, use_container_width=True, config={"displaylogo": False})
 
         st.markdown("**Station Inventory Overview:**")
         rows = []
@@ -2575,11 +2669,11 @@ def _show_govt_fuel(db):
         prices = db.get_all_fuel_prices()
         for p in prices:
             st.markdown(
-                f'<div style="background:#132039;padding:10px 14px;'
+                f'<div style="background:{COLOR_PALE_MINT};padding:10px 14px;'
                 f'border-radius:8px;margin:4px 0">'
                 f'<strong>{p["fuel_type"]}</strong>: '
                 f'{format_currency(p["price_per_litre"])}/L '
-                f'<span style="color:#B0BEC5;font-size:0.85rem">'
+                f'<span style="color:{COLOR_MUTED};font-size:0.85rem">'
                 f'Updated: {format_date_only(p["updated_at"])}'
                 f'</span></div>',
                 unsafe_allow_html=True
@@ -2839,8 +2933,8 @@ def _show_govt_fuel(db):
                     if susp:
                         susp_dict = dict(susp)
                         st.markdown(
-                            f'<div style="background:#FF3D0015;'
-                            f'border:1px solid #FF3D00;padding:12px;'
+                            f'<div style="background:{COLOR_CRITICAL}15;'
+                            f'border:1px solid {COLOR_CRITICAL};padding:12px;'
                             f'border-radius:8px;margin:8px 0">'
                             f'🚫 <strong>Active Suspension</strong><br>'
                             f'{format_suspension_message(susp_dict)}'
@@ -2975,8 +3069,8 @@ def _show_govt_electricity(db):
                     title="Outage Hours by Area",
                     color="city",
                     color_discrete_map={
-                        "Dhaka":      "#1E90FF",
-                        "Chattogram": "#00C853",
+                        "Dhaka":      COLOR_PRIMARY,
+                        "Chattogram": COLOR_LEAF,
                     },
                     labels={
                         "area":        "Area",
@@ -2985,11 +3079,17 @@ def _show_govt_electricity(db):
                     }
                 )
                 fig.update_layout(
-                    plot_bgcolor="#0A1628",
-                    paper_bgcolor="#0A1628",
-                    font_color="#FFFFFF"
+                    plot_bgcolor="#FFFFFF",
+                    paper_bgcolor="#FFFFFF",
+                    font_color=COLOR_INK,
+                    hoverlabel=dict(bgcolor="#FFFFFF", font_color=COLOR_INK),
+                    xaxis=dict(showgrid=True, gridcolor=COLOR_BORDER, zeroline=False),
+                    yaxis=dict(showgrid=True, gridcolor=COLOR_BORDER, zeroline=False),
+                    margin=dict(l=48, r=24, t=64, b=48),
+                    height=360,
+                    hovermode="closest"
                 )
-                st.plotly_chart(fig, use_container_width=True)
+                st.plotly_chart(fig, use_container_width=True, config={"displaylogo": False})
 
                 sorted_data = sorted(
                     data,
