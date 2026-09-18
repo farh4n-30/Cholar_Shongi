@@ -2280,6 +2280,32 @@ def show_pump_management(db, station_id: int):
     st.markdown(f"**Station:** {stn['name']}  |  **Pumps:** {pump_count}")
     st.markdown("---")
 
+    st.markdown("### 🚶 Walk-In Service")
+    st.markdown(
+        "Enable or disable walk-in requests for this station."
+    )
+    col_h, col_wi = st.columns([3, 1])
+    with col_h:
+        st.markdown(
+            f'Station Status: {health_badge(health)}',
+            unsafe_allow_html=True
+        )
+    with col_wi:
+        walkin_on = bool(stn["walkin_enabled"])
+        new_state = st.toggle("Walk-ins", value=walkin_on,
+                               key="walkin_toggle")
+        if new_state != walkin_on:
+            db.toggle_walkin(station_id, new_state)
+            db.log_audit(
+                st.session_state.user_id,
+                "Walk-in toggle",
+                f"Walk-ins {'enabled' if new_state else 'disabled'}",
+                "fuel"
+            )
+            st.rerun()
+
+    st.markdown("---")
+
     st.markdown("### 🚨 Emergency Close Entire Station")
     st.warning(
         "This will cancel ALL remaining bookings for today "
@@ -2357,25 +2383,10 @@ def show_inventory_management(db, station_id: int):
         return
     health = db.get_station_health(station_id)
 
-    col_h, col_wi = st.columns([3, 1])
-    with col_h:
-        st.markdown(
-            f'Station Status: {health_badge(health)}',
-            unsafe_allow_html=True
-        )
-    with col_wi:
-        walkin_on = bool(stn["walkin_enabled"])
-        new_state = st.toggle("Walk-ins", value=walkin_on,
-                               key="walkin_toggle")
-        if new_state != walkin_on:
-            db.toggle_walkin(station_id, new_state)
-            db.log_audit(
-                st.session_state.user_id,
-                "Walk-in toggle",
-                f"Walk-ins {'enabled' if new_state else 'disabled'}",
-                "fuel"
-            )
-            st.rerun()
+    st.markdown(
+        f'Station Status: {health_badge(health)}',
+        unsafe_allow_html=True
+    )
 
     st.markdown("---")
     st.markdown("### Current Fuel Levels")
