@@ -1,7 +1,10 @@
 import re
 import string
 import random
+from io import BytesIO
 from datetime import datetime, timedelta, date
+
+import qrcode
 
 VEHICLE_TYPES = [
     "Motorcycle (Personal)",
@@ -697,6 +700,27 @@ def generate_emergency_receipt_text(booking: dict, station_name: str,
         "═══════════════════════════════════════",
     ]
     return "\n".join(lines)
+
+def generate_token_qr(token: str):
+    if not token:
+        return None
+    token = str(token).strip().upper()
+    if not token:
+        return None
+    qr = qrcode.QRCode(
+        version=None,
+        error_correction=qrcode.constants.ERROR_CORRECT_M,
+        box_size=8,
+        border=4,
+    )
+    qr.add_data(token)
+    qr.make(fit=True)
+    img = qr.make_image(fill_color="black", back_color="white")
+    buffer = BytesIO()
+    img.save(buffer, format="PNG")
+    buffer.seek(0)
+    return buffer
+
 
 def get_fuel_gauge_colour(stock: float, capacity: float) -> str:
 
