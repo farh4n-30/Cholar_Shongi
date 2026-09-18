@@ -266,150 +266,181 @@ Vehicle not in emergency registry: Contact district authority.
 def inject_css():
     st.markdown("""
     <style>
-
     .stApp {
-        background:
-            radial-gradient(circle at top left,
-                rgba(0,255,255,0.08),
-                transparent 30%),
-            radial-gradient(circle at top right,
-                rgba(255,0,255,0.08),
-                transparent 30%),
-            linear-gradient(
-                135deg,
-                #050816,
-                #08152E,
-                #050816
-            );
+        background: #FFFFFF;
+    }
+
+    .main .block-container {
+        max-width: 1350px;
+        padding-top: 1.5rem;
+        padding-bottom: 3rem;
+    }
+
+    h1, h2, h3, h4 {
+        color: #123B2A;
+    }
+
+    .sidebar-brand {
+        font-size: 1.4rem;
+        font-weight: 800;
+        background: linear-gradient(90deg, #0B6B53, #147A52, #0B6B53);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 0.35rem;
     }
 
     .segment-card {
-        background: rgba(19,32,57,0.85);
-        backdrop-filter: blur(10px);
+        background: #FFFFFF;
+        border: 1px solid #DDE8E2;
         border-radius: 16px;
-        padding: 32px;
+        padding: 28px;
         text-align: center;
-        border: 1px solid rgba(0,255,255,0.25);
-        transition: all 0.3s ease;
+        box-shadow: 0 4px 16px rgba(11, 107, 83, 0.08);
+        transition: all 0.2s ease;
         cursor: pointer;
     }
 
     .segment-card:hover {
-        border-color: #00FFFF;
-        box-shadow:
-            0 0 15px rgba(0,255,255,0.4),
-            0 0 30px rgba(255,0,255,0.2);
-        transform: translateY(-4px);
-    }
-
-    .hero-title {
-        font-size: 3.5rem;
-        font-weight: 900;
-        text-align: center;
-        background: linear-gradient(
-            90deg,
-            #00FFFF,
-            #00BFFF,
-            #FF00FF,
-            #00FFFF
-        );
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        text-shadow:
-            0 0 10px rgba(0,255,255,0.7),
-            0 0 20px rgba(255,0,255,0.4);
-        margin-bottom: 0.5rem;
-    }
-
-    .hero-subtitle {
-        font-size: 1.2rem;
-        color: #D0D6FF;
-        text-align: center;
-        margin-bottom: 1rem;
+        border-color: #0B6B53;
+        box-shadow: 0 8px 24px rgba(11, 107, 83, 0.14);
+        transform: translateY(-2px);
     }
 
     .badge-active {
-        background: rgba(255,61,0,0.15);
-        color: #FF6B4A;
+        background: #FFF1EE;
+        color: #C73E1D;
         padding: 4px 10px;
         border-radius: 20px;
-        border: 1px solid #FF6B4A;
+        border: 1px solid #F0A28E;
     }
 
     .badge-upcoming {
-        background: rgba(255,179,0,0.15);
-        color: #FFD54F;
+        background: #FFF8E7;
+        color: #9A6700;
         padding: 4px 10px;
         border-radius: 20px;
-        border: 1px solid #FFD54F;
+        border: 1px solid #E7C76A;
     }
 
     .badge-expired {
-        background: rgba(0,200,83,0.15);
-        color: #00E676;
+        background: #EEF8F3;
+        color: #147A52;
         padding: 4px 10px;
         border-radius: 20px;
-        border: 1px solid #00E676;
+        border: 1px solid #8CC9AB;
     }
 
     .token-box {
-        background: rgba(19,32,57,0.9);
-        border: 2px solid #00FFFF;
-        border-radius: 12px;
+        background: #F7FBF9;
+        border: 2px solid #0B6B53;
+        border-radius: 14px;
         padding: 24px;
         text-align: center;
-        box-shadow: 0 0 15px rgba(0,255,255,0.35);
+        box-shadow: 0 6px 20px rgba(11, 107, 83, 0.10);
     }
 
     .token-text {
         font-size: 2.5rem;
         font-weight: 900;
-        color: #00FFFF;
+        color: #0B6B53;
         letter-spacing: 6px;
         font-family: monospace;
-        text-shadow: 0 0 10px rgba(0,255,255,0.8);
     }
 
     .alert-critical {
-        background: rgba(255,61,0,0.12);
-        border-left: 4px solid #FF3D00;
+        background: #FFF4F1;
+        border-left: 4px solid #D94A28;
         padding: 12px 16px;
         border-radius: 8px;
         margin: 8px 0;
+        color: #5C2B20;
     }
 
     .alert-warning {
-        background: rgba(255,179,0,0.12);
-        border-left: 4px solid #FFB300;
+        background: #FFF9E8;
+        border-left: 4px solid #D89B00;
         padding: 12px 16px;
         border-radius: 8px;
         margin: 8px 0;
+        color: #5C4800;
     }
 
     .alert-info {
-        background: rgba(0,255,255,0.08);
-        border-left: 4px solid #00FFFF;
+        background: #F0F8F5;
+        border-left: 4px solid #0B6B53;
         padding: 12px 16px;
         border-radius: 8px;
         margin: 8px 0;
-        box-shadow: 0 0 10px rgba(0,255,255,0.15);
+        color: #21483A;
     }
 
     .receipt-box {
-        background: rgba(19,32,57,0.85);
-        border: 1px solid rgba(0,255,255,0.3);
+        background: #FFFFFF;
+        border: 1px solid #DDE8E2;
         border-radius: 12px;
         padding: 24px;
         font-family: monospace;
         max-width: 450px;
         margin: 0 auto;
-        box-shadow: 0 0 15px rgba(0,255,255,0.15);
+        box-shadow: 0 5px 18px rgba(11, 107, 83, 0.08);
     }
 
-    #MainMenu {visibility: hidden;}
-    footer {visibility: hidden;}
-    header {visibility: hidden;}
+    .stButton > button {
+        border-radius: 10px;
+        font-weight: 600;
+        border: 1px solid #0B6B53;
+        background: #0B6B53;
+        color: #FFFFFF;
+        min-height: 44px;
+    }
 
+    .stButton > button:hover {
+        background: #095A46;
+        border-color: #095A46;
+        color: #FFFFFF;
+    }
+
+    [data-testid="stSidebar"] {
+        background: #F7FAF8;
+        border-right: 1px solid #DDE8E2;
+    }
+
+    [data-testid="stSidebar"] h3 {
+        color: #0B6B53;
+    }
+
+    [data-testid="stDataFrame"] {
+        border: 1px solid #DDE8E2;
+        border-radius: 10px;
+    }
+
+    #MainMenu {
+        visibility: hidden;
+    }
+
+    footer {
+        visibility: hidden;
+    }
+
+    header {
+        visibility: hidden;
+    }
+
+    @media (max-width: 768px) {
+        .main .block-container {
+            padding-left: 1rem;
+            padding-right: 1rem;
+        }
+
+        .segment-card {
+            padding: 20px;
+        }
+
+        .token-text {
+            font-size: 2rem;
+            letter-spacing: 4px;
+        }
+    }
     </style>
     """, unsafe_allow_html=True)
 inject_css()
@@ -460,7 +491,10 @@ def generate_manual_pdf():
     
 def show_landing_sidebar():
     with st.sidebar:
-        st.markdown("### চলার সঙ্গী")
+        st.markdown(
+            '<div class="sidebar-brand">চলার সঙ্গী</div>',
+            unsafe_allow_html=True
+        )
         st.markdown("---")
         st.download_button(
             label="📥 Download User Manual (PDF)",
@@ -711,28 +745,21 @@ def show_fuel_sidebar():
 
 def show_landing_page():
     show_landing_sidebar()
-    st.markdown(
-        '<div class="hero-title">চলার সঙ্গী</div>',
-        unsafe_allow_html=True
-    )
-    st.markdown(
-        '<div class="hero-subtitle">Cholar Shongi - Your smart guide to energy and fuel in Bangladesh</div>',
-        unsafe_allow_html=True
-    )
-    st.markdown(
-        '<p style="text-align:center;padding-left:20px;font-style:italic;color:#00C853;">'
-        'Seamless fuel. Scheduled power. Zero hassle.</p>',
-        unsafe_allow_html=True
-    )
 
-    show_lottie(
-        "https://lottie.host/7af41266-1102-4860-ac3c-a43746c86d84/voY5yX51KQ.json",
-        height=400,
-        fallback="🌃"
-    )
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    assets_dir = os.path.join(base_dir, "assets")
 
-    st.markdown("---")
+    hero_path = os.path.join(assets_dir, "hero_skyline.png")
+    electricity_path = os.path.join(assets_dir, "electricity_illustration.png")
+    fuel_path = os.path.join(assets_dir, "fuel_illustration.png")
+
+    if os.path.exists(hero_path):
+        st.image(hero_path, use_container_width=True)
+    else:
+        st.error("Hero artwork could not be loaded.")
+
     announcements = db.get_active_announcements()
+
     if announcements:
         for ann in announcements:
             rendered_msg = utils.render_announcement_message(ann["message"])
@@ -745,31 +772,66 @@ def show_landing_page():
     col1, col2 = st.columns(2, gap="large")
 
     with col1:
-        st.markdown("""
-        <div class="segment-card">
-            <div style="font-size:60px">⚡</div>
-            <h2 style="color:#1E90FF;margin:8px 0">Electricity</h2>
-            <p style="color:#B0BEC5">Check load shedding schedules for your area. No login required.</p>
-        </div>
-        """, unsafe_allow_html=True)
-        if st.button("Explore Electricity →", key="btn_electricity",
-                     use_container_width=True):
-            st.session_state.current_segment = "electricity"
-            st.rerun()
+        image_left, image_center, image_right = st.columns([0.04, 0.92, 0.04])
+
+        with image_center:
+            if os.path.exists(electricity_path):
+                st.image(
+                    electricity_path,
+                    use_container_width=True
+                )
+            else:
+                st.error("Electricity artwork could not be loaded.")
+
+            st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
+
+            if st.button(
+                "View electricity schedule  →",
+                key="btn_electricity",
+                use_container_width=True
+            ):
+                st.session_state.current_segment = "electricity"
+                st.rerun()
 
     with col2:
-        st.markdown("""
-        <div class="segment-card">
-            <div style="font-size:60px">⛽</div>
-            <h2 style="color:#00C853;margin:8px 0">Fuel</h2>
-            <p style="color:#B0BEC5">Book fuel appointments at stations near you. Register to get started.</p>
-        </div>
-        """, unsafe_allow_html=True)
-        if st.button("Explore Fuel →", key="btn_fuel",
-                     use_container_width=True):
-            st.session_state.current_segment = "fuel"
-            st.rerun()
+        image_left, image_center, image_right = st.columns([0.04, 0.92, 0.04])
 
+        with image_center:
+            if os.path.exists(fuel_path):
+                st.image(
+                    fuel_path,
+                    use_container_width=True
+                )
+            else:
+                st.error("Fuel artwork could not be loaded.")
+
+            st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
+
+            if st.button(
+                "Book appointment  →",
+                key="btn_fuel",
+                use_container_width=True
+            ):
+                st.session_state.current_segment = "fuel"
+                st.rerun()
+
+    st.markdown(
+        """
+        <div style="
+            text-align:center;
+            margin-top:28px;
+            margin-bottom:8px;
+            color:#0B6B53;
+            font-size:1.45rem;
+            font-weight:700;
+            font-style:italic;
+        ">
+            Seamless Fuel, Scheduled Power, Zero Hassle.
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+    
 def show_electricity_segment():
     show_electricity_sidebar()
 
